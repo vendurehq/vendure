@@ -337,6 +337,7 @@ msgstr "Sprzedawcy"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-option-list.tsx
 msgid "Options"
 msgstr "Opcje"
 
@@ -427,10 +428,15 @@ msgstr "Czy na pewno chcesz usunąć ten wariant?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Przenoszenie # kolekcji do wybranej kolekcji} other {Przenoszenie # kolekcji do wybranej kolekcji}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "All resources are up and running"
 #~ msgstr "Wszystkie zasoby są aktywne"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -503,6 +509,10 @@ msgstr "Zmieniono pola niestandardowe"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "Pomyślnie utworzono lokalizację magazynową"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -621,6 +631,10 @@ msgstr "Nowa grupa klientów"
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "Utwórz „{0}\""
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "{count} filters"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Could not load orders"
@@ -976,6 +990,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Dodaj produkty i uzupełnij adres wysyłki, aby uruchomić test."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Przełącz wiersz nagłówka"
@@ -1160,6 +1178,10 @@ msgstr "Wprowadź ID transakcji dla tego rozliczenia zwrotu"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Czy na pewno chcesz usunąć ten projekt zamówienia?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -1572,6 +1594,10 @@ msgstr "Pobierz jako plik .env"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "Po włączeniu promocja jest dostępna w sklepie"
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Remove {label} filter"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "Go to the pages of all selected jobs first"
 msgstr ""
@@ -1767,6 +1793,10 @@ msgstr ", {0} zaznaczono"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Nie znaleziono krajów"
@@ -1945,6 +1975,11 @@ msgstr "Przeniesiono zamówienie"
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is before"
 msgstr "jest przed"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
 
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
@@ -2187,6 +2222,10 @@ msgstr "Limit użycia"
 msgid "Create your first collection"
 msgstr "Utwórz swoją pierwszą kolekcję"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Ładowanie ustawień globalnych..."
@@ -2351,6 +2390,10 @@ msgstr "Nowa kategoria podatkowa"
 #~ msgid "Partial refund completed"
 #~ msgstr "Częściowy zwrot zakończony"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Column options"
 msgstr ""
@@ -2497,6 +2540,11 @@ msgstr "Ostatnie 30 dni"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Brak wartości aspektów"
+
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3306,6 +3354,8 @@ msgstr "Przeglądaj fasety"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Strefa"
@@ -3350,6 +3400,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0} selected"
 msgstr "{0} wybranych"
@@ -3671,6 +3722,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Rabat"
 
@@ -4128,8 +4180,6 @@ msgstr "Wybierz wartość"
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
@@ -4302,8 +4352,12 @@ msgstr "Nie udało się utworzyć kategorii podatkowej"
 #~ msgstr "Ustaw kryteria filtrowania dla kolumny {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Kraj"
@@ -4369,7 +4423,7 @@ msgstr "Linki do resetowania hasła są ważne tylko przez ograniczony czas. Pop
 msgid "Authentication methods"
 msgstr "Metody uwierzytelniania"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "start"
 msgstr "początek"
 
@@ -4388,6 +4442,10 @@ msgstr "Szukaj ról..."
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
@@ -4448,6 +4506,10 @@ msgstr ""
 msgid "Assign"
 msgstr "Przypisz"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
 msgstr "Pomyślnie utworzono sprzedawcę"
@@ -4478,6 +4540,10 @@ msgstr "Spróbuj ponownie"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
 msgstr "Pomyślnie zaktualizowano metodę wysyłki"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Row options"
@@ -4619,6 +4685,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Wybierz kraj"
 
@@ -4660,7 +4727,7 @@ msgstr "Slug"
 msgid "Set Focal Point"
 msgstr "Ustaw punkt ogniskowy"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "end"
 msgstr "koniec"
 
@@ -4835,6 +4902,10 @@ msgstr "Hasła nie są zgodne"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Wybierz datę i godzinę"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -5149,6 +5220,10 @@ msgstr "Adres został utworzony"
 #~ msgid "Add an option group to get started with variants."
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "Rotacja API key zakończona pomyślnie"
@@ -5182,6 +5257,10 @@ msgstr "Pozycje uwzględnione w tej realizacji."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Nie udało się anulować płatności"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5664,6 +5743,10 @@ msgstr "Wysłane"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Monitored Resources"
 #~ msgstr "Monitorowane zasoby"
@@ -5748,6 +5831,10 @@ msgstr "Jeśli włączone, filtry zostaną odziedziczone z kolekcji nadrzędnej 
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Wybierz strefę"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -5863,6 +5950,10 @@ msgstr "Wymagany jest zwrot w wysokości {formattedDiff}. Wybierz kwoty płatno�
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -6045,7 +6136,12 @@ msgstr "Operacje zbiorcze"
 msgid "New seller"
 msgstr "Nowy sprzedawca"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/layout/generated-breadcrumbs.tsx
+#: src/lib/components/layout/route-pending.tsx
+#: src/lib/components/layout/route-pending.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "Ładowanie…"
@@ -6287,6 +6383,10 @@ msgstr "Nowa metoda wysyłki"
 msgid "Delete stock locations"
 msgstr "Usuń lokalizacje magazynowe"
 
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
+
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
 msgstr "jest większe lub równe"
@@ -6403,7 +6503,6 @@ msgstr ""
 #~ msgstr "To samo okno"
 
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
-#: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "Remove filter"
 msgstr ""
 
@@ -6818,10 +6917,18 @@ msgstr "Nazwa wariantu"
 msgid "Remove"
 msgstr "Usuń"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Nie udało się zaktualizować klienta"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
@@ -7094,7 +7201,6 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "Pomyślnie zaktualizowano administratora"
 
-#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -7161,6 +7267,10 @@ msgstr "Binarny"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Pomyślnie zaktualizowano grupę opcji"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7597,6 +7707,10 @@ msgstr "Języki globalne"
 msgid "New administrator"
 msgstr "Nowy administrator"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Usuń wersję roboczą"
@@ -7974,6 +8088,10 @@ msgstr "większe lub równe"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Ustawia poziom magazynowy, przy którym ten wariant jest uważany za niedostępny. Użycie wartości ujemnej umożliwia obsługę zamówień wstecznych."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Create product options"
 #~ msgstr "Utwórz opcje produktu"
@@ -8035,6 +8153,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Dodano klienta do grupy"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"
@@ -8154,6 +8276,10 @@ msgstr "Podstawa opodatkowania"
 msgid "Load more"
 msgstr "Załaduj więcej"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr ""
@@ -8165,6 +8291,10 @@ msgstr "Rozliczono zwrot"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #~ msgid "API Key"
 #~ msgstr "API Key"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -8192,8 +8322,8 @@ msgid "Available Conditions"
 msgstr "Dostępne warunki"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
-msgid "Active filters"
-msgstr "Aktywne filtry"
+#~ msgid "Active filters"
+#~ msgstr "Aktywne filtry"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -8218,6 +8348,10 @@ msgstr "Zamknij"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Link"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order..."

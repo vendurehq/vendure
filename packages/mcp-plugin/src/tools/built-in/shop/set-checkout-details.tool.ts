@@ -63,8 +63,8 @@ type SetCheckoutDetailsInput = z.infer<typeof setCheckoutDetailsInput>;
         "Set the cart's shipping address, billing address, or both, and for a guest checkout the " +
         "buyer's email and name, in one call. A guest checkout needs the buyer named here, through " +
         'customer, before place_order will take a payment. Changing the shipping address can make ' +
-        'the chosen shipping method ineligible; the response then carries shippingMethodChanged: ' +
-        'true and a message saying whether the store swapped the method or dropped it.',
+        'the chosen shipping method or option ineligible; the response then carries ' +
+        'shippingMethodChanged: true and a message saying whether the store swapped it or dropped it.',
     keywords: [
         'enter my delivery address',
         'where to ship my order',
@@ -114,7 +114,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
                 // The cart was there a moment ago, so only a concurrent deletion gets here.
                 throw new EntityNotFoundError('Order', cart.id);
             }
-            const methodsBefore = shippingMethodIds(before);
+            const methodsBefore = shippingSelectionKeys(before);
 
             let order: Order | undefined = before;
             // Done first: a returned error here doesn't roll back the transaction, so naming the
@@ -162,7 +162,7 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
         methodsBefore: string[],
         after: Order | undefined,
     ): { shippingMethodChanged: true; message: string } | undefined {
-        const methodsAfter = shippingMethodIds(after);
+        const methodsAfter = shippingSelectionKeys(after);
         const sameIds =
             methodsBefore.length === methodsAfter.length &&
             methodsBefore.every((id, index) => id === methodsAfter[index]);
@@ -176,16 +176,20 @@ export class SetCheckoutDetailsTool implements McpToolHandler<SetCheckoutDetails
 }
 
 const shippingMethodReplacedMessage =
-    'The new shipping address made the chosen shipping method ineligible, so the store replaced it ' +
-    'with the cheapest eligible one (see order.shippingLines). Tell the shopper, or call ' +
+    'The new shipping address made the chosen shipping method or option ineligible, so the store ' +
+    'replaced it with the cheapest eligible one (see order.shippingLines). Tell the shopper, or call ' +
     'get_eligible_shipping_methods and set_shipping_method to pick another.';
 const shippingMethodRemovedMessage =
     'The new shipping address made the chosen shipping method ineligible and no other method is ' +
     'eligible, so the cart has no shipping method. Call get_eligible_shipping_methods and ' +
     'set_shipping_method again before place_order.';
 
-function shippingMethodIds(order: Order | undefined): string[] {
-    return (order?.shippingLines ?? []).map(line => String(line.shippingMethodId)).sort();
+// The option code is included because a ShippingLine can keep its ShippingMethod but fall back to
+// another of its options, which changes what the shopper pays for.
+function shippingSelectionKeys(order: Order | undefined): string[] {
+    return (order?.shippingLines ?? [])
+        .map(line => `${String(line.shippingMethodId)}:${line.shippingOptionCode ?? ''}`)
+        .sort();
 }
 
 function asBillingAddress(

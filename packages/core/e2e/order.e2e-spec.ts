@@ -2632,7 +2632,7 @@ describe('Orders resolver', () => {
                 });
                 expect.fail('Should have thrown');
             } catch (e: any) {
-                expect(e.message).toContain('error.currency-not-available');
+                expect(e.message).toContain('The currency "GBP" is not available in the current Channel');
             }
         });
 

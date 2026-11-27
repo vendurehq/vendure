@@ -8,8 +8,31 @@ import { Zone } from '../../entity/zone/zone.entity';
 import { MutableRequestContext } from '../../plugin/default-search-plugin/indexer/mutable-request-context';
 
 import { RequestContext, SerializedRequestContext } from './request-context';
+import { runWithRequestId } from './request-id';
 
 describe('RequestContext', () => {
+    describe('requestId', () => {
+        it('is the current request ID when the context is created', () => {
+            const ctx = runWithRequestId('req-1', () => createRequestContext());
+            expect(ctx.requestId).toBe('req-1');
+        });
+
+        it('is undefined for a context created outside a request', () => {
+            expect(createRequestContext().requestId).toBeUndefined();
+        });
+
+        it('is kept by serialize() and deserialize()', () => {
+            const serialized = runWithRequestId('req-1', () => createRequestContext()).serialize();
+            expect(serialized._requestId).toBe('req-1');
+            expect(RequestContext.deserialize(serialized).requestId).toBe('req-1');
+        });
+
+        it('is kept by copy()', () => {
+            const ctx = runWithRequestId('req-1', () => createRequestContext());
+            expect(ctx.copy().requestId).toBe('req-1');
+        });
+    });
+
     describe('serialize/deserialize', () => {
         let serializedCtx: SerializedRequestContext;
         let original: RequestContext;

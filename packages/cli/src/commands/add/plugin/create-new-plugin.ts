@@ -1,174 +1,20 @@
-import { cancel, intro, isCancel, log, select, spinner, text } from '@clack/prompts';
-import fs from 'fs-extra';
 import path from 'path';
 import { Project, SourceFile } from 'ts-morph';
 
-
-import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
-import { analyzeProject } from '../../../shared/shared-prompts.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
-import { addImportsToFile, createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
+import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
 import { constantCase, kebabCase, pascalCase } from '../../../utilities/case-utils.js';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils.js';
-import { addApiExtensionCommand } from '../api-extension/add-api-extension.js';
-import { addCodegenCommand } from '../codegen/add-codegen.js';
-import { addDashboardCommand } from '../dashboard/add-dashboard.js';
-import { addEntityCommand } from '../entity/add-entity.js';
-import { addJobQueueCommand } from '../job-queue/add-job-queue.js';
-import { addServiceCommand } from '../service/add-service.js';
 
 import { GeneratePluginOptions, NewPluginTemplateContext } from './types.js';
 
-export const createNewPluginCommand = new CliCommand({
-    id: 'create-new-plugin',
-    category: 'Plugin',
-    description: 'Create a new Vendure plugin',
-    run: (options?: Partial<GeneratePluginOptions>) => createNewPlugin(options),
-});
-
-const cancelledMessage = 'Plugin setup cancelled.';
-
-export async function createNewPlugin(
-    options: Partial<GeneratePluginOptions> = {},
-): Promise<CliCommandReturnVal> {
-    // Validate that if a name is provided, it's actually a string
-    if (options.name !== undefined && (typeof options.name !== 'string' || !options.name.trim())) {
-        throw new Error('Plugin name is required. Usage: vendure add -p <plugin-name>');
-    }
-
-    const isNonInteractive = !!options.name;
-    if (!isNonInteractive) {
-        intro('Adding a new Vendure plugin!');
-    }
-    const { project, config, vendureTsConfig } = await analyzeProject({
-        cancelledMessage,
-        config: options.config,
-    });
-    if (!options.name) {
-        const name = await text({
-            message: 'What is the name of the plugin?',
-            initialValue: 'my-new-feature',
-            validate: input => {
-                if (!/^[a-z][a-z-0-9]+$/.test(input)) {
-                    return 'The plugin name must be lowercase and contain only letters, numbers and dashes';
-                }
-            },
-        });
-
-        if (isCancel(name)) {
-            cancel(cancelledMessage);
-            exitCliCommand(0);
-        } else {
-            options.name = name;
-        }
-    }
-    const existingPluginDir = findExistingPluginsDir(project);
-    const vendureProjectDir = vendureTsConfig ? path.dirname(vendureTsConfig) : process.cwd();
-    const pluginDir = getPluginDirName(options.name, existingPluginDir, vendureProjectDir);
-
-    if (isNonInteractive) {
-        options.pluginDir = pluginDir;
-        if (fs.existsSync(options.pluginDir)) {
-            throw new Error(`A directory named "${options.pluginDir}" already exists.`);
-        }
-    } else {
-        const confirmation = await text({
-            message: 'Plugin location',
-            initialValue: pluginDir,
-            placeholder: '',
-            validate: input => {
-                if (fs.existsSync(input)) {
-                    return `A directory named "${input}" already exists. Please specify a different directory.`;
-                }
-            },
-        });
-
-        if (isCancel(confirmation)) {
-            cancel(cancelledMessage);
-            exitCliCommand(0);
-        }
-        options.pluginDir = confirmation;
-    }
-
-    const { plugin, modifiedSourceFiles } = await generatePlugin(project, options as GeneratePluginOptions);
-
-    const configSpinner = spinner();
-    configSpinner.start('Updating VendureConfig...');
-    await pauseForPromptDisplay();
-    const vendureConfig = new VendureConfigRef(project, config);
-    vendureConfig.addToPluginsArray(`${plugin.name}.init({})`);
-    addImportsToFile(vendureConfig.sourceFile, {
-        moduleSpecifier: plugin.getSourceFile(),
-        namedImports: [plugin.name],
-    });
-    await vendureConfig.sourceFile.getProject().save();
-    configSpinner.stop('Updated VendureConfig');
-
-    if (isNonInteractive) {
-        return {
-            project,
-            modifiedSourceFiles: [],
-        };
-    }
-    let done = false;
-    const followUpCommands = [
-        addEntityCommand,
-        addServiceCommand,
-        addApiExtensionCommand,
-        addJobQueueCommand,
-        addDashboardCommand,
-        addCodegenCommand,
-    ];
-    let allModifiedSourceFiles = [...modifiedSourceFiles];
-    while (!done) {
-        const featureType = await withInteractiveTimeout(async () => {
-            return await select({
-                message: `Add features to ${options.name ?? 'plugin'}?`,
-                options: [
-                    { value: 'no', label: "[Finish] No, I'm done!" },
-                    ...followUpCommands.map(c => ({
-                        value: c.id,
-                        label: `[${c.category}] ${c.description}`,
-                    })),
-                ],
-            });
-        });
-
-        if (isCancel(featureType) || featureType === 'no') {
-            done = true;
-        } else {
-            const command = followUpCommands.find(c => c.id === featureType);
-            if (!command) {
-                break;
-            }
-            try {
-                const result = await command.run({ plugin });
-                allModifiedSourceFiles = result.modifiedSourceFiles;
-                // We format all modified source files and re-load the
-                // project to avoid issues with the project state
-                for (const sourceFile of allModifiedSourceFiles) {
-                    sourceFile.organizeImports();
-                }
-            } catch (e: any) {
-                rethrowCliCommandExit(e);
-                log.error(`Error adding feature "${command.id}"`);
-                log.error(e.stack);
-            }
-        }
-    }
-
-    return {
-        project,
-        modifiedSourceFiles: [],
-    };
-}
-
-export async function generatePlugin(
+/**
+ * Creates the files of a new plugin in `options.pluginDir`: the plugin class, its options type
+ * and its constants. It prints nothing and does not save.
+ */
+export function scaffoldPlugin(
     project: Project,
     options: GeneratePluginOptions,
-): Promise<{ plugin: VendurePluginRef; modifiedSourceFiles: SourceFile[] }> {
+): { plugin: VendurePluginRef; created: SourceFile[] } {
     const nameWithoutPlugin = options.name.replace(/-?plugin$/i, '');
     const normalizedName = nameWithoutPlugin + '-plugin';
     const templateContext: NewPluginTemplateContext = {
@@ -176,10 +22,6 @@ export async function generatePlugin(
         pluginName: pascalCase(normalizedName),
         pluginInitOptionsName: constantCase(normalizedName) + '_OPTIONS',
     };
-
-    const projectSpinner = spinner();
-    projectSpinner.start('Generating plugin scaffold...');
-    await pauseForPromptDisplay();
 
     const pluginFile = createFile(
         project,
@@ -213,10 +55,8 @@ export async function generatePlugin(
         .getVariableDeclaration('loggerCtx')
         ?.set({ initializer: `'${templateContext.pluginName}'` });
 
-    projectSpinner.stop('Generated plugin scaffold');
-    await project.save();
     return {
-        modifiedSourceFiles: [pluginFile, typesFile, constantsFile],
+        created: [pluginFile, typesFile, constantsFile],
         plugin: new VendurePluginRef(pluginClass),
     };
 }
@@ -237,6 +77,14 @@ function findExistingPluginsDir(project: Project): { prefix: string; suffix: str
     const rest = pluginDirs[0].substring(suffixStartIndex).replace(/^\//, '').split('/');
     const suffix = rest.length > 1 ? rest.slice(1).join('/') : '';
     return { prefix, suffix };
+}
+
+/**
+ * Where a new plugin goes: next to the existing plugins when there are any, else in
+ * `src/plugins` of the Vendure project.
+ */
+export function defaultPluginDir(project: Project, name: string, vendureProjectDir: string): string {
+    return getPluginDirName(name, findExistingPluginsDir(project), vendureProjectDir);
 }
 
 function getPluginDirName(

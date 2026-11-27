@@ -11,6 +11,7 @@ import {
     getCliPluginScope,
     PackageJsonLike,
     resolveCliPlugins,
+    resolveCommandManifests,
 } from './resolve-cli-plugins.js';
 
 describe('CLI plugin scopes', () => {
@@ -30,28 +31,18 @@ describe('CLI plugin scopes', () => {
 
     /**
      * A package installed under `root/node_modules`, shaped like a CLI plugin.
-     * `commandName` becomes the one command it contributes, so a test can tell
-     * which copy of a package was loaded.
+     * `marker` becomes the plugin id, so a test can tell which copy of a
+     * package was loaded.
      */
-    function installPlugin(root: string, packageName: string, commandName: string): void {
+    function installPlugin(root: string, packageName: string, marker: string): void {
         const dir = path.join(root, 'node_modules', ...packageName.split('/'));
         fs.ensureDirSync(dir);
         fs.writeJsonSync(path.join(dir, 'package.json'), {
             name: packageName,
             version: '1.0.0',
-            vendure: { cliPlugin: './cli-plugin.js', cliCommands: [commandName] },
+            vendure: { cliPlugin: './cli-plugin.js' },
         });
-        fs.writeFileSync(
-            path.join(dir, 'cli-plugin.js'),
-            `module.exports = {
-                id: '${packageName}',
-                commands: [{
-                    name: '${commandName}',
-                    description: 'From ${packageName}',
-                    action: async () => 0,
-                }],
-            };\n`,
-        );
+        fs.writeFileSync(path.join(dir, 'cli-plugin.js'), `module.exports = { id: '${marker}' };\n`);
     }
 
     /**
@@ -117,6 +108,8 @@ describe('CLI plugin scopes', () => {
         }
         const result = resolveCliPlugins({ cwd: root, scopes: ['project'] });
         expect(result.loaded).toEqual([]);
+        // No project scope was loaded, so there is no project the plugins came from.
+        expect(result.projectRoot).toBeUndefined();
         expect(result.scopeErrors).toEqual([
             {
                 scope: 'project',
@@ -127,6 +120,7 @@ describe('CLI plugin scopes', () => {
         const selected = resolveCliPlugins({ cwd: root, project: 'server', scopes: ['project'] });
         expect(selected.scopeErrors).toEqual([]);
         expect(selected.loaded).toHaveLength(1);
+        expect(selected.projectRoot).toBe(fs.realpathSync(path.join(root, 'server')));
         expect(() => resolveCliPlugins({ cwd: root, project: 'missing', scopes: ['project'] })).toThrow(
             'Invalid --project directory',
         );
@@ -298,9 +292,9 @@ describe('CLI plugin scopes', () => {
 
         expect(loaded).toHaveLength(1);
         expect(loaded[0].scope).toBe('project');
-        // The command name says which copy on disk was executed, which the
+        // The plugin id says which copy on disk was executed, which the
         // package name alone cannot.
-        expect(loaded[0].plugin.commands.map(command => command.name)).toEqual(['project-cloud']);
+        expect(loaded[0].plugin.id).toBe('project-cloud');
     });
 
     it('considers only the scopes it is asked for', () => {
@@ -334,6 +328,105 @@ describe('CLI plugin scopes', () => {
             packageName: '@example/cloud',
             scope: 'global',
             status: 'enabled',
+        });
+    });
+    describe('watchedFiles', () => {
+        /** A project with the given dependencies enabled, and its own package.json. */
+        function projectEnabling(dependencies: Record<string, string>) {
+            const root = makeTempDir('vendure-watch-project-');
+            fs.writeJsonSync(path.join(root, 'package.json'), {
+                name: 'shop',
+                dependencies: { '@vendure/core': '*', ...dependencies },
+                vendure: { cli: { plugins: Object.keys(dependencies) } },
+            });
+            return root;
+        }
+
+        function writePackage(root: string, dirName: string, packageJson: object) {
+            const dir = path.join(root, 'node_modules', ...dirName.split('/'));
+            fs.ensureDirSync(dir);
+            fs.writeJsonSync(path.join(dir, 'package.json'), packageJson);
+            return dir;
+        }
+
+        const projectFiles = (root: string) =>
+            resolveCommandManifests({ cwd: root, scopes: ['project'] }).watchedFiles;
+
+        it('lists the package.json and command manifest of a package that resolves', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@example/tools',
+                vendure: { commandManifest: './vendure-commands.json', commandDefinitions: './commands.js' },
+            });
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(dir, 'package.json'),
+                path.join(dir, 'vendure-commands.json'),
+            ]);
+        });
+
+        it('lists the manifest a package names even when the file is missing', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@example/tools',
+                vendure: {
+                    commandManifest: './dist/vendure-commands.json',
+                    commandDefinitions: './commands.js',
+                },
+            });
+
+            const result = resolveCommandManifests({ cwd: root, scopes: ['project'] });
+            expect(result.failures.map(failure => failure.packageName)).toEqual(['@example/tools']);
+            expect(result.watchedFiles).toContain(path.join(dir, 'dist', 'vendure-commands.json'));
+        });
+
+        it('lists every node_modules package.json above the project for a package that is not installed', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+
+            const files = projectFiles(root);
+            expect(files[0]).toBe(path.join(root, 'package.json'));
+            expect(files[1]).toBe(path.join(root, 'node_modules', '@example', 'tools', 'package.json'));
+            expect(files[2]).toBe(
+                path.join(path.dirname(root), 'node_modules', '@example', 'tools', 'package.json'),
+            );
+            expect(files.at(-1)).toBe(
+                path.join(path.parse(root).root, 'node_modules', '@example', 'tools', 'package.json'),
+            );
+        });
+
+        it('lists an npm alias under the name it is declared with', () => {
+            const root = projectEnabling({ '@example/tools': 'npm:@other/tools@1' });
+            const dir = writePackage(root, '@example/tools', {
+                name: '@other/tools',
+                vendure: { cliPlugin: './cli-plugin.js' },
+            });
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(dir, 'package.json'),
+            ]);
+        });
+
+        it('lists the package.json of a package with only a cliPlugin', () => {
+            const root = projectEnabling({ '@example/tools': '*' });
+            installPlugin(root, '@example/tools', 'tools');
+
+            expect(projectFiles(root)).toEqual([
+                path.join(root, 'package.json'),
+                path.join(root, 'node_modules', '@example', 'tools', 'package.json'),
+            ]);
+        });
+
+        it('lists the global cli.json and the plugin roots of a global package that is not installed', () => {
+            const globalRoot = makeTempDir('vendure-watch-global-');
+            const env = makeGlobalEnv({ plugins: ['@example/tools'], roots: [globalRoot] });
+
+            const { watchedFiles } = resolveCommandManifests({ env, scopes: ['global'] });
+            expect(watchedFiles[0]).toBe(path.join(env.VENDURE_CLI_CONFIG_DIR as string, 'cli.json'));
+            expect(watchedFiles[1]).toBe(
+                path.join(globalRoot, 'node_modules', '@example', 'tools', 'package.json'),
+            );
         });
     });
 });
@@ -464,9 +557,9 @@ describe('the global scope with a project-local CLI', () => {
         fs.ensureDirSync(toolsDir);
         fs.writeJsonSync(path.join(toolsDir, 'package.json'), {
             name: '@example/tools',
-            vendure: { cliPlugin: './p.js', cliCommands: ['tools'] },
+            vendure: { cliPlugin: './p.js' },
         });
-        fs.writeFileSync(path.join(toolsDir, 'p.js'), 'module.exports={id:"t",commands:[]};\n');
+        fs.writeFileSync(path.join(toolsDir, 'p.js'), 'module.exports={id:"t"};\n');
         const configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vendure-local-cfg-'));
         tempDirs.push(configDir);
         fs.writeJsonSync(path.join(configDir, 'cli.json'), { plugins: [] });
@@ -484,4 +577,5 @@ describe('the global scope with a project-local CLI', () => {
 
         expect(discovered).toEqual([]);
     });
+
 });

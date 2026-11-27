@@ -176,7 +176,13 @@ export class FacetResolver {
         @Args() args: MutationUpdateFacetValuesArgs,
     ): Promise<Array<Translated<FacetValue>>> {
         const { input } = args;
-        return Promise.all(input.map(facetValue => this.facetValueService.update(ctx, facetValue)));
+        // One after another: concurrent writes in one transaction share its database connection, and
+        // on Postgres their savepoints then fail with "savepoint does not exist".
+        const facetValues: Array<Translated<FacetValue>> = [];
+        for (const facetValue of input) {
+            facetValues.push(await this.facetValueService.update(ctx, facetValue));
+        }
+        return facetValues;
     }
 
     @Transaction()

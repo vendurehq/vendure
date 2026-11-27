@@ -202,6 +202,19 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
     @EntityId({ nullable: true })
     taxZoneId?: ID;
 
+    /**
+     * @description
+     * The country code used to look up country TaxRates the last time the Order was calculated:
+     * the result of `TaxZoneStrategy.determineTaxCountryCode()`, which by default is the country of
+     * the shipping address, or an empty string if there was none. When it changes, every OrderLine
+     * is taxed again, as when the tax Zone changes. It is `null`
+     * until the first calculation, so an Order placed before it existed keeps its taxes.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: 'varchar', nullable: true })
+    taxCountryCode?: string | null;
+
     @ManyToMany(type => Channel)
     // The junction table is owned by the channel assignment entity, which manages its schema.
     @JoinTable({ synchronize: false })

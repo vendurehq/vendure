@@ -1,0 +1,104 @@
+---
+title: "VendureStartupError"
+generated: true
+---
+## VendureStartupError
+
+<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="44" packageName="@vendure/core" since="4.0.0" />
+
+An error which stops the Vendure server or worker from starting, such as an invalid config. It carries
+a namespaced code, for example `core.config.invalid-custom-fields`, and a list of fixes.
+
+When [bootstrap](/reference/typescript-api/common/bootstrap#bootstrap) or [bootstrapWorker](/reference/typescript-api/worker/bootstrap-worker#bootstrapworker) fails, Vendure writes one line of JSON to stderr
+before rethrowing the error, so that a supervising process such as the `vendure` CLI can read the
+code and the fixes:
+
+```json
+{"vendure":"event","event":"startup-error","code":"core.config.invalid-custom-fields","message":"...","fix":[...]}
+```
+
+A plugin can throw its own startup errors with a code in its own namespace:
+
+*Example*
+
+```ts
+throw new VendureStartupError({
+    code: 'reviews.config.missing-api-key',
+    message: 'The ReviewsPlugin needs an apiKey',
+    fix: [{ description: 'Pass the apiKey option to ReviewsPlugin.init()' }],
+});
+```
+
+```ts title="Signature"
+class VendureStartupError extends Error {
+    readonly vendureCode: string;
+    readonly fix: VendureErrorFix[];
+    constructor(options: { code: string; message: string; fix?: VendureErrorFix[] })
+}
+```
+* Extends: Error
+
+
+
+<div className="members-wrapper">
+
+### vendureCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### fix
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/errors/vendure-startup-error#vendureerrorfix'>VendureErrorFix</a>[]`}   />
+
+
+
+
+</div>
+## VendureErrorFix
+
+<GenerationInfo sourceFile="packages/core/src/common/error/vendure-startup-error.ts" sourceLine="13" packageName="@vendure/core" since="4.0.0" />
+
+One way to fix a [VendureStartupError](/reference/typescript-api/errors/vendure-startup-error#vendurestartuperror). `description` says what to change. When the fix is
+a command, `path` and `input` name it, for example
+`{ description: 'Generate a migration', path: ['migrate', 'generate'], input: {} }`. See [Fix](/reference/typescript-api/errors/vendure-startup-error#fix).
+
+```ts title="Signature"
+type VendureErrorFix = Fix
+```
+## Fix
+
+<GenerationInfo sourceFile="packages/common/src/command/types.ts" sourceLine="92" packageName="@vendure/common" since="4.0.0" />
+
+One way to fix a problem. `description` says what to do. When the fix is a command, `path` and
+`input` name it, so a host can offer it as a command line or an MCP tool call. Startup errors and
+`vendure dev` carry fixes of this shape.
+
+```ts title="Signature"
+interface Fix {
+    description: string;
+    path?: string[];
+    input?: Record<string, unknown>;
+}
+```
+
+<div className="members-wrapper">
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### path
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+### input
+
+<MemberInfo kind="property" type={`Record<string, unknown>`}   />
+
+
+
+
+</div>

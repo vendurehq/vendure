@@ -721,6 +721,11 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/deployment/production-configuration/index.mdx'),
                 },
                 {
+                    title: 'Self-hosting',
+                    slug: 'self-hosting',
+                    file: file('docs/guides/deployment/self-hosting.mdx'),
+                },
+                {
                     title: 'Using Docker',
                     slug: 'using-docker',
                     file: file('docs/guides/deployment/using-docker.mdx'),
@@ -951,6 +956,14 @@ const manifestInput: DocsPackageManifestInput = {
                     slug: 'mcp-sdk',
                     file: file('docs/reference/mcp-sdk/index.mdx'),
                     children: createNestedNavigationFromFolder(folder('docs/reference/mcp-sdk'), {
+                        filter: (info: FileInfo) => info.filename !== 'index.mdx',
+                    }),
+                },
+                {
+                    title: 'CLI',
+                    slug: 'cli',
+                    file: file('docs/reference/cli/index.mdx'),
+                    children: createNestedNavigationFromFolder(folder('docs/reference/cli'), {
                         filter: (info: FileInfo) => info.filename !== 'index.mdx',
                     }),
                 },

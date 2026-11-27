@@ -1,29 +1,16 @@
-import { log, select } from '@clack/prompts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { log, outro, select } from '@clack/prompts';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runCoreCommand } from '../../command-host/run-core-command.js';
 
 import { migrateCommandDef } from './command.js';
 import { migrateCommand } from './migrate.js';
-import {
-    generateMigrationOperation,
-    revertMigrationOperation,
-    runMigrationsOperation,
-} from './migration-operations.js';
-
-const commandMocks = vi.hoisted(() => ({
-    generateMigrationRun: vi.fn(),
-    revertMigrationRun: vi.fn(),
-    runMigrationRun: vi.fn(),
-}));
 
 vi.mock('@clack/prompts', () => ({
     cancel: vi.fn(),
     intro: vi.fn(),
     isCancel: vi.fn(() => false),
-    log: {
-        error: vi.fn(),
-        info: vi.fn(),
-        success: vi.fn(),
-    },
+    log: { error: vi.fn(), info: vi.fn() },
     outro: vi.fn(),
     select: vi.fn(),
 }));
@@ -33,120 +20,76 @@ vi.mock('../../utilities/utils.js', () => ({
     withInteractiveTimeout: vi.fn((fn: () => Promise<any>) => fn()),
 }));
 
-vi.mock('./migration-operations.js', () => ({
-    generateMigrationOperation: vi.fn(),
-    revertMigrationOperation: vi.fn(),
-    runMigrationsOperation: vi.fn(),
-}));
-
-vi.mock('./generate-migration/generate-migration.js', () => ({
-    generateMigrationCommand: {
-        run: commandMocks.generateMigrationRun,
-    },
-}));
-
-vi.mock('./revert-migration/revert-migration.js', () => ({
-    revertMigrationCommand: {
-        run: commandMocks.revertMigrationRun,
-    },
-}));
-
-vi.mock('./run-migration/run-migration.js', () => ({
-    runMigrationCommand: {
-        run: commandMocks.runMigrationRun,
-    },
+vi.mock('../../command-host/run-core-command.js', () => ({
+    runCoreCommand: vi.fn(() => Promise.resolve({ exitCode: 0, envelope: { status: 'ok' } })),
 }));
 
 describe('migrateCommand()', () => {
-    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-
     beforeEach(() => {
         vi.clearAllMocks();
-        delete process.env.VENDURE_RUNNING_IN_CLI;
-        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+        vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    });
 
-        vi.mocked(generateMigrationOperation).mockResolvedValue({
-            success: true,
-            message: 'generated',
-        });
-        vi.mocked(runMigrationsOperation).mockResolvedValue({
-            success: true,
-            message: 'ran',
-            migrationsRan: [],
-        });
-        vi.mocked(revertMigrationOperation).mockResolvedValue({
-            success: true,
-            message: 'reverted',
-        });
+    it('runs `migrate generate` through the host for --generate', async () => {
+        await migrateCommand({ generate: 'AddReviews', outputDir: './migrations', fromEmpty: true });
 
-        commandMocks.generateMigrationRun.mockResolvedValue({
-            project: {} as any,
-            modifiedSourceFiles: [],
-        });
-        commandMocks.runMigrationRun.mockResolvedValue({
-            project: {} as any,
-            modifiedSourceFiles: [],
-        });
-        commandMocks.revertMigrationRun.mockResolvedValue({
-            project: {} as any,
-            modifiedSourceFiles: [],
+        expect(runCoreCommand).toHaveBeenCalledWith(['migrate', 'generate'], {
+            name: 'AddReviews',
+            outputDir: './migrations',
+            fromEmpty: true,
+            config: undefined,
         });
     });
 
-    afterEach(() => {
-        delete process.env.VENDURE_RUNNING_IN_CLI;
-        consoleLogSpy.mockRestore();
-    });
+    it('runs `migrate run` through the host for --run, with the config file', async () => {
+        await migrateCommand({ run: true, config: './custom-vendure-config.ts' });
 
-    it('passes the custom config file through to interactive revert', async () => {
-        vi.mocked(select).mockResolvedValueOnce('revert');
-
-        await migrateCommand({ config: './custom-vendure-config.ts' });
-
-        expect(commandMocks.revertMigrationRun).toHaveBeenCalledWith({
-            configFile: './custom-vendure-config.ts',
+        expect(runCoreCommand).toHaveBeenCalledWith(['migrate', 'run'], {
+            config: './custom-vendure-config.ts',
         });
-        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
     });
 
-    it('sets a non-zero exit code when an interactive operation throws', async () => {
-        vi.mocked(select).mockResolvedValueOnce('run');
-        commandMocks.runMigrationRun.mockRejectedValueOnce(new Error('interactive migration failed'));
+    it.each(['generate', 'run', 'revert'])(
+        'runs `migrate %s` through the host from the menu',
+        async action => {
+            vi.mocked(select).mockResolvedValueOnce(action);
 
-        await expect(migrateCommandDef.action(undefined)).resolves.toBe(1);
+            await migrateCommand({ config: './custom-vendure-config.ts' });
 
-        expect(log.error).toHaveBeenCalledWith('interactive migration failed');
-        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
+            expect(runCoreCommand).toHaveBeenCalledWith(['migrate', action], {
+                config: './custom-vendure-config.ts',
+            });
+            expect(outro).toHaveBeenCalledWith('✅ Done!');
+        },
+    );
+
+    it('returns the exit code of the host command', async () => {
+        vi.mocked(runCoreCommand).mockResolvedValueOnce({
+            exitCode: 1,
+            envelope: { status: 'error' },
+        } as any);
+
+        await expect(migrateCommandDef.action({ run: true })).resolves.toBe(1);
     });
 
-    it('rejects conflicting non-interactive operations instead of silently picking one', async () => {
+    it('rejects conflicting operations instead of silently picking one', async () => {
         await expect(migrateCommandDef.action({ generate: 'TestMigration', run: true })).resolves.toBe(1);
 
         expect(log.error).toHaveBeenCalledWith(
             'The migrate command accepts only one operation at a time. Received: --generate, --run.',
         );
-        expect(log.info).toHaveBeenCalledWith(
-            'Run one of: vendure migrate --generate <name>, vendure migrate --run, or vendure migrate --revert.',
+        expect(runCoreCommand).not.toHaveBeenCalled();
+    });
+
+    it('rejects --from-empty without --generate', async () => {
+        await expect(migrateCommandDef.action({ run: true, fromEmpty: true })).resolves.toBe(1);
+
+        expect(runCoreCommand).not.toHaveBeenCalled();
+    });
+
+    it('has no --revert flag, which `vendure migrate revert` replaces', () => {
+        expect(migrateCommandDef.options?.map(option => option.long)).not.toContainEqual(
+            expect.stringMatching(/^--revert\b/),
         );
-        expect(generateMigrationOperation).not.toHaveBeenCalled();
-        expect(runMigrationsOperation).not.toHaveBeenCalled();
-        expect(revertMigrationOperation).not.toHaveBeenCalled();
-    });
-
-    it('passes the custom config file through to non-interactive revert', async () => {
-        await migrateCommand({ revert: true, config: './custom-vendure-config.ts' });
-
-        expect(revertMigrationOperation).toHaveBeenCalledWith('./custom-vendure-config.ts');
-        expect(log.success).toHaveBeenCalledWith('reverted');
-        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
-    });
-
-    it('cleans up the CLI env var when a non-interactive operation throws', async () => {
-        vi.mocked(runMigrationsOperation).mockRejectedValueOnce(new Error('migration failed'));
-
-        await expect(migrateCommandDef.action({ run: true })).resolves.toBe(1);
-
-        expect(log.error).toHaveBeenCalledWith('migration failed');
-        expect(process.env.VENDURE_RUNNING_IN_CLI).toBeUndefined();
     });
 });

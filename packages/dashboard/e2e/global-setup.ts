@@ -2,6 +2,7 @@ import type { AssetStorageStrategy } from '@vendure/core';
 import {
     Asset,
     defaultCollectionFilters,
+    defaultShippingCalculator,
     mergeConfig,
     Product,
     TransactionalConnection,
@@ -23,6 +24,7 @@ import {
     e2eCustomFields,
     e2ePaymentMethodHandlers,
     e2eRefundDestinations,
+    e2eShippingCalculators,
 } from './fixtures/e2e-shared-config.js';
 import { initialData } from './fixtures/initial-data.js';
 
@@ -127,6 +129,9 @@ export default async function globalSetup() {
         // mergeConfig replaces arrays, so keep the defaults explicitly.
         catalogOptions: {
             collectionFilters: [...defaultCollectionFilters, ...e2eCollectionFilters],
+        },
+        shippingOptions: {
+            shippingCalculators: [defaultShippingCalculator, ...e2eShippingCalculators],
         },
     });
 

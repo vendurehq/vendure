@@ -92,6 +92,8 @@ Sorting or filtering a variant list by `price` or `priceWithTax` now uses the pr
 
 Code which prices variants with `ProductPriceApplicator.applyChannelPriceAndTax()` or `ProductVariantService.applyChannelPriceAndTax()` needs no change. When you price variants one after another in a loop, call `ProductPriceApplicator.preloadChannelPrices(ctx, variants)` first, so their prices are loaded in one query rather than one per variant.
 
+`ProductVariantService.getFacetValuesForVariant()` now returns only the FacetValues of the active Channel, and no longer loads their `channels`. This is not exposed in GraphQL. To read the Channels of a FacetValue, load it with `relations: ['channels']`, for example with `TransactionalConnection.getEntityOrThrow()`.
+
 ## Inventory tracking
 
 Inventory tracking is resolved per stock level, then per variant, then per channel. The main breaks:
@@ -103,6 +105,34 @@ Inventory tracking is resolved per stock level, then per variant, then per chann
 - `StockMovementEvent` subscribers can receive a movement split into a tracked and an untracked row.
 
 For the full list, see [Updating your code](/developer-guide/migrating-from-v3/inventory-tracking#updating-your-code).
+
+## Shipping options
+
+A ShippingMethod can now offer several priced [shipping options](/core-concepts/shipping/#several-options-per-shippingmethod), such as the services of a carrier API. Existing ShippingCalculators keep working unchanged. What can break:
+
+- **Code which builds `ShippingMethodQuote` or `TestShippingMethodResult` objects**, such as a custom resolver or a plugin that returns its own shipping quotes, must set the new non-null `options` field. The generated TypeScript types require it. For a quote with one price, return one option with a null `code` and the quote's `price`, `priceWithTax` and `metadata`.
+- **`setOrderShippingMethod(shippingMethodId)`** is now optional, because the new `shippingMethods` argument can be passed instead. Exactly one of the two must be given. Generated TypeScript types for the mutation's arguments change accordingly.
+- **A ShippingMethod whose calculator returns no result** can no longer be set on an Order: `setOrderShippingMethod`, `setDraftOrderShippingMethod` and `modifyOrder` return an `IneligibleShippingMethodError`. In v3 such a method could be set, and its ShippingLine stayed at a price of 0. It was already left out of `eligibleShippingMethods`. When the calculator of a ShippingLine's method returns no result as the Order is recalculated, the ShippingLine now falls back to the cheapest eligible option, as for an ineligible method. In v3 it kept its previous price.
+- **`modifyOrder` with `recalculateShipping: false`** now prices a ShippingMethod it sets with the chosen option's price, and applies the shipping promotions to that price. In v3 the ShippingLine kept the price of the previous method.
+- **`setOrderShippingMethod` and `setDraftOrderShippingMethod` leave the Order in the database as it was when they return an error.** They run in a savepoint of the request's transaction, which is rolled back when the method or option is refused. Events published by promotion side effects while the Order was priced are not undone.
+- **`OrderService.setShippingMethod()` and `OrderModifier.setShippingMethods()`** accept a `ShippingMethodSelectionInput` as well as an ID for each entry. An empty list is refused.
+- **`OrderModifier.setShippingMethods()`** returns a `SetShippingMethodsResult` with the `order` and a `selectionKept()` function rather than the Order itself. As before, it does not price the ShippingLines: recalculate the Order afterwards, then pass its ShippingLines to `selectionKept()` to find out whether a selected option was refused. `OrderService.setShippingMethod()` does both.
+- **`ShippingLine`** has two new nullable columns, `shippingOptionCode` and `shippingOptionName`. The generated migration adds them.
+
+## Tax rates
+
+A TaxRate can now target a country as well as a Zone, and a country rate wins over a zone rate. See [Tax rate resolution](/core-concepts/taxes/#tax-rate-resolution). Existing zone rates keep their Zone and resolve as before. What can break:
+
+- **`TaxRate.zone` is nullable** in the GraphQL APIs and on the entity (`zone?: Zone | null`, `zoneId?: ID | null`), because a country rate has no Zone. Code which reads `taxRate.zone.id` or `taxRate.zone.name` must handle `null`. The new `region` field holds the country of a country rate.
+- **`CreateTaxRateInput.zoneId` is optional.** Exactly one of `zoneId` and the new `regionId` must be set. Generated TypeScript types for the input change accordingly.
+- **`TaxRateService.getApplicableTaxRate()`** takes `{ countryCode, zone }` as its second argument, so that a country rate can be found. Passing a Zone or zone ID still works, but then only zone rates are found. To apply country rates in your own code, pass the country of the Order's shipping address as `countryCode`.
+- **`tax_rate`** has a new nullable column, `regionId`, and **`order`** a new nullable column, `taxCountryCode`. The generated migration adds them. `Order.taxCountryCode` records the tax country of the last tax calculation, which by default is the shipping country. An Order placed before v4 has none. Its next calculation records the country and keeps the taxes the Order was placed with.
+
+These additions need no change to your code:
+
+- **`TaxZoneStrategy.determineTaxCountryCode()`** is a new optional method, which chooses the country whose country rates apply. Without it, the country of the shipping address is used, as above. The new **`defaultTaxCountryCode()`** function exports that default, so a strategy can keep it for some cases. See [Choosing the tax country](/core-concepts/taxes/#choosing-the-tax-country).
+- **`Channel.taxCountryCode`** is a new optional field, the country whose rate the Channel's tax-inclusive prices include. **`channel`** has a new nullable column, `taxCountryCode`. The generated migration adds it. Channels that leave it unset behave as before, and `defaultTaxZone` keeps all its roles. **`TaxRateService.findIncludedTaxRate()`** returns the included rate, and `DefaultProductVariantPriceCalculationStrategy` uses it. See [The Channel's tax country](/core-concepts/taxes/#the-channels-tax-country).
+- In a Channel whose prices include tax, when the tax Zone or the tax country of an active Order changes, every OrderLine is now priced again, as on a currency change, because its net price depends on the rate. Before, only the lines being edited were. The line's `initialListPrice` is converted between gross and net the same way, so the `ChangedPriceHandlingStrategy` is only called when the merchant changed the price. Order modifications keep the prices of the lines they do not change.
 
 ## Changed defaults
 
@@ -179,6 +209,30 @@ An update mutation of your own must leave an absent field unchanged, which it do
 
 `updatePromotion` now computes the priority score from the stored conditions and actions when the input omits them. Before, an update without `conditions` and `actions` reset the score to 0.
 
+### Order modifications keep the discounts of a paid Order
+
+`modifyOrder` no longer re-tests every Promotion on every modification. The new `orderOptions.promotionFreezeStrategy` decides, and the default `DefaultPromotionFreezeStrategy` freezes the Promotions unless the modification changes the OrderLines, the coupon codes or the shipping methods. So an address change, a surcharge, a note or a custom field no longer changes what a paid Order costs, even if a Promotion has been disabled since payment or one of its conditions now answers differently. In v3 it could.
+
+- The `freezePromotions` option of `ModifyOrderInput.options` was never read in v3. It now overrides the strategy: `true` keeps the discounts, `false` re-tests the Promotions.
+- When the Promotions are frozen, the OrderLines keep their discount amounts, so units added to an existing line get no discount. Lowering a line's quantity scales its discount down in proportion. A shipping discount is capped at the new shipping price.
+- A modification that changes the coupon codes while the Promotions are frozen is rejected.
+- Coupon codes that are already on the Order are no longer validated again. In v3, re-sending a code whose Promotion had been disabled or had ended returned `CouponCodeInvalidError` or `CouponCodeExpiredError`, and a code with a per-customer usage limit could return `CouponCodeLimitError` because the Order counted against itself. Now the modification goes ahead. New codes are still validated.
+- When the Promotions are re-tested, the ones already on the Order are candidates too, so a Promotion disabled since payment still applies as long as its conditions pass.
+- The `ORDER_MODIFIED` history entry records the decision in `data.promotionsFrozen`.
+- The Dashboard previews a modification both ways. When the discounts would differ, the administrator chooses which ones the Order gets.
+
+To re-test the Promotions on every modification unless the client asks to freeze them, which is closest to v3:
+
+```ts
+import { PromotionFreezeStrategy } from '@vendure/core';
+
+orderOptions: {
+    promotionFreezeStrategy: {
+        shouldFreezePromotions: (ctx, order, input) => input.options?.freezePromotions === true,
+    } satisfies PromotionFreezeStrategy,
+},
+```
+
 ## The Dashboard is served from its pre-built bundle
 
 `vendureDashboardPlugin` now always loads the Dashboard from the pre-built bundle in the `@vendure/dashboard` package, which was opt-in through `useExperimentalBundle` since v3.7. Your Vite dev server no longer compiles the Dashboard's own source. This cuts the number of module requests on a cold load from about 3,000 to about 40.
@@ -188,6 +242,72 @@ An update mutation of your own must leave an absent field unchanged, which it do
 - Import everything from `@vendure/dashboard`. Imports from the `@/vdb/*` and `@/graphql/*` aliases are deprecated. They still resolve, but now to `@vendure/dashboard`, and log a warning. An import of something that `@vendure/dashboard` does not export fails with a "missing export" error. The aliases will be removed in v5.
 - Remove the `@/vdb/*` path from your `tsconfig.json`. `@vendure/dashboard` now ships type declarations, so TypeScript no longer reads the Dashboard's source.
 - The package no longer ships the Dashboard's TypeScript source. Code that reads files from `node_modules/@vendure/dashboard/src` must import from `@vendure/dashboard` instead.
+
+## CLI login API
+
+The Vendure CLI signs in with a device login, so the browser login API that `@vendure/cli` exported since v3.8.0 is removed. It was not deprecated first.
+
+| Removed | Use instead |
+|---|---|
+| `loginWithBrowser()`, `ConsoleBrowserLoginOptions` | `loginWithDevice()`, which stores the login the CLI shares. See [Console authentication](https://github.com/vendurehq/vendure/blob/major/packages/cli/CONSOLE_AUTH.md). |
+| `refreshSession()`, `ConsoleRefreshOptions`, `ConsoleTokenGrantError` | `getAccessToken()`, which renews the stored login, or `refreshAccessToken()` after a 401 |
+| Imports from `@vendure/cli/dist/commands/console/cli-auth` | The package root, `@vendure/cli` |
+| `ConsoleSession.refreshToken` | Nothing. The session an `afterConsoleLink` hook gets never carried one. |
+
+## vendure dev
+
+`vendure dev` is declared with `defineCommand`, like the CLI's other agent-ready commands.
+
+| Before | In v4 |
+|---|---|
+| `vendure dev --project <dir>` | `vendure dev --dir <dir>`. `--project` names the Vendure Cloud project. |
+| Ctrl+C ended the run with exit code 130 | A run stopped with Ctrl+C or SIGTERM ends with exit code 0. A run that a process ends with an error exits 1. |
+| `vendure dev` stopped at once on Ctrl+C or SIGTERM | `vendure dev` waits up to 30 s for its processes after Ctrl+C or SIGTERM, then gives up with `cli.cancelled`. A second Ctrl+C ends it at once. |
+| `devCommand()`, imported from `@vendure/cli/dist/commands/dev/dev.js` | Run `vendure dev`. Files under `dist` are not a public API of `@vendure/cli`. |
+| A CLI plugin could add options to `dev` and wrap its action with `extendCommands` | That extension is skipped, with a warning, and the rest of the plugin still loads. Declare an `extensions` entry with `defineCommandExtension` instead, which adds typed fields and wraps `run` with `next()` (see [Extending a command](/guides/developer-guide/cli/#extending-a-command)). |
+
+Update scripts, `package.json` scripts and CI jobs that pass `--project` to `vendure dev`.
+
+## vendure console
+
+`vendure console link`, `status` and `unlink` are declared with `defineCommand`, like the CLI's other agent-ready
+commands. They are also tools of the Developer MCP.
+
+| Before | In v4 |
+|---|---|
+| `vendure console link --project <dir>` | `vendure console link --dir <dir>`. The same applies to `status` and `unlink`. |
+| `vendure console link --console-project <id\|slug>` | `vendure console link --project <id\|slug>`. A `--project` value that is a Vendure project directory is refused with the coded error `console.project-is-directory`. |
+| `--force` replaced a link with another Console Project, or removed a link, without asking | Each needs a named consent: `replaceLink` for `link`, and `removeLink` for `unlink`. A person at a terminal is asked. Without one, the command returns `incomplete` with a `consent` need, and you run it again with `--replace-link <digest>` or `--remove-link <digest>`. |
+| `vendure console link --force` without `--console-project` chose a new Project in the terminal | Run `vendure console unlink`, then `vendure console link`. |
+| `--yes` answered the CLI's confirmations, including replacing and removing a link | `--yes` is gone from `vendure console`. It never gives a consent. Without a person at a terminal, a repair runs plugin setup without asking, as before. |
+| `--json` wrote a `ConsoleCommandResult` (`schemaVersion`, `operation`, `outcome`, `data`, `needs`, `nextSteps`) | `--json` writes the envelope that every command writes. `link` returns `outcome`, `manifestPath`, `project`, `account`, `plugins` and `nextSteps` as its output, its needs as an `incomplete` result, a plugin setup that failed after the link as a `failed` result with that output, and a link that failed as the coded error `console.link-failed`. `ConsoleCommandResult` is deprecated. |
+| `--non-interactive` | Removed. A run never prompts without a person at a terminal: under `--json`, through the Developer MCP, with `CI` or `VENDURE_CLI_NON_INTERACTIVE` set, or without a TTY. |
+| A CLI plugin could add options to `console` and wrap its action with `extendCommands` | That extension is skipped, with a warning. Declare an `extensions` entry with `defineCommandExtension` instead (see [Extending a command](/guides/developer-guide/cli/#extending-a-command)). `afterConsoleLink` hooks run as before. |
+| An `afterConsoleLink` hook read the parsed options in `context.options`: `project` (the directory), `consoleProject`, `organization`, `force`, `yes`, `json`, `nonInteractive` and plugin flags | `context.options` holds the command's input: `dir` (the directory, which was `project`), `consoleProject` (unchanged) and `organization`. Hooks no longer get `project`. `json`, `nonInteractive`, `yes`, `force` and plugin flags are gone. Read `context.force` for the `replaceLink` consent, and `context.outputMode` and `context.isNonInteractive` for the rest. |
+| An `afterConsoleLink` hook's `needs` went into the `--json` result as they were | Without a person, a need with a `fix`, or an `input` need for `dir`, `project` or `organization`, makes the result `incomplete`. Any other need is reported as a next step, and the result is `failed`. |
+
+Update scripts and CI jobs that pass `--project <dir>`, `--console-project`, `--force`, `--yes` or `--non-interactive`
+to `vendure console`.
+
+Without a person at a terminal, as in CI, scripts and agents, an error that an `afterConsoleLink` hook throws is
+reported in general terms: `The <plugin> plugin failed after linking: Setup did not finish.` This is deliberate, because
+CI logs can be public and a hook's error can hold anything the plugin put in it. To see the hook's own message, run
+`vendure console link` at a terminal, or read the hook's own logs. Errors the CLI writes itself are always reported as
+they are.
+
+## CLI plugin commands
+
+A CLI plugin no longer declares commands. A package adds its commands by declaring each one with `defineCommand` from `@vendure/common/lib/command` and shipping the command manifest built from them. This gives every command `--json`, `--input`, coded errors and a tool in the Developer MCP. See [Commands declared with `defineCommand`](/guides/developer-guide/cli/#commands-declared-with-definecommand).
+
+| Before | In v4 |
+|---|---|
+| `CliPlugin.commands` declared Commander-style commands, groups and subcommands | Removed. A CLI plugin that declares a non-empty `commands` array fails to load with the coded error `plugin.commands-removed`, and the rest of the CLI keeps working. Declare the commands with `defineCommand` and `defineCommandGroup`, build the manifest with `writeCommandManifest` from `@vendure/common/lib/command/manifest`, and list it in `package.json` as `vendure.commandManifest` and `vendure.commandDefinitions`. A plugin that was built with `commands: []` keeps loading. `CliPlugin` no longer declares `commands`, so the source of a TypeScript plugin drops `commands: []` when it is rebuilt against v4. |
+| `replaces: true` on a plugin command replaced a built-in command, and `CliCommandDefinition.replaces` declared it | Removed. A plugin cannot replace a built-in. Extend a `defineCommand` command with `defineCommandExtension`, and a built-in Commander command such as `start` with `extendCommands`. |
+| `requiresProject` on a plugin command | The field stays on the command types of the built-in commands. It no longer applies to plugins, since they declare no commands. |
+| `vendure.cliCommands` in `package.json` listed a plugin's command names for hints | Removed. The CLI reads the command names from the command manifest, without loading the package's code. |
+| `vendure plugins --json` listed `declaredCommands` and `loadedCommands` | Removed. `manifestCommands` lists the top-level commands of the package's manifest. |
+| `CLI_PLUGIN_EXTENSION_POINTS` included `commands`, `subcommands` and `requiresProject` | Removed from the list. A plugin that checks for `commands` learns from its absence that it has to declare its commands with `defineCommand`. |
+| The `command.replaced` error of a Developer MCP tool call to a command that a plugin replaced | Removed, because no plugin can replace a command. |
 
 ## Removed deprecated APIs
 

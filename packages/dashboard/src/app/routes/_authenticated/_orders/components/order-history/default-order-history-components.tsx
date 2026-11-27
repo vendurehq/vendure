@@ -75,6 +75,11 @@ export function OrderModifiedComponent(props: Readonly<HistoryEntryProps>) {
             <p className="text-xs text-muted-foreground">
                 <Trans>Order modification #{entry.data.modificationId}</Trans>
             </p>
+            {entry.data.promotionsFrozen === true && (
+                <p className="text-xs text-muted-foreground">
+                    <Trans>The discounts the order was paid with were kept</Trans>
+                </p>
+            )}
         </HistoryEntry>
     );
 }

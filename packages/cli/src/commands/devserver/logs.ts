@@ -1,0 +1,52 @@
+import { CommandContext, fail } from '@vendure/common/lib/command';
+import { LogLevelName, LogLine } from '@vendure/common/lib/log';
+
+import { devServerErrors, resolveDevServerProject } from './devserver.js';
+import { formatDevLogLine, MAX_LOG_LINES, parseSince, readDevServerLogs } from './log-reader.js';
+
+/**
+ * Reads the dev log of the project, filtered like `vendure cloud logs`.
+ */
+export function run(input: LogsInput, ctx: CommandContext) {
+    return Promise.resolve(readLogs(input, ctx));
+}
+
+interface LogsInput {
+    since?: string;
+    request?: string;
+    minSeverity?: LogLevelName;
+}
+
+function readLogs(input: LogsInput, ctx: CommandContext) {
+    let projectDir: string;
+    try {
+        projectDir = resolveDevServerProject(ctx);
+    } catch (e) {
+        return fail(devServerErrors.projectNotFound, { message: (e as Error).message });
+    }
+    let since: Date | undefined;
+    if (input.since !== undefined) {
+        since = parseSince(input.since);
+        if (!since) {
+            return fail(devServerErrors.invalidSince, { since: input.since });
+        }
+    }
+    const lines = readDevServerLogs(projectDir, {
+        since,
+        requestId: input.request,
+        minSeverity: input.minSeverity,
+    });
+    const omitted = Math.max(lines.length - MAX_LOG_LINES, 0);
+    if (omitted > 0) {
+        ctx.notice(
+            'info',
+            `Left out the ${omitted} oldest lines. Narrow the filters, for example with --since, to see them.`,
+        );
+    }
+    return { lines: lines.slice(omitted), omitted };
+}
+
+export function render(output: { lines: LogLine[]; omitted: number }): string {
+    // The number of left-out lines is reported once, as a notice.
+    return output.lines.map(formatDevLogLine).join('\n');
+}

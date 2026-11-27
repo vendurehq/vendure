@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { McpToolset } from '@vendure/mcp-sdk';
 
+import { MCP_TOOL_KEYWORDS_META_KEY } from '../constants';
 import { McpExecutionContext } from '../internal-types';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 
@@ -34,6 +35,10 @@ export async function createMcpServerForRequest(
                 description: tool.description,
                 inputSchema: tool.compiledInputSchema,
                 annotations: tool.annotations,
+                // A client that builds its own tool search, such as the Developer MCP, uses these.
+                // No output schema is sent: a destructive tool's first result is `incomplete`, so
+                // its declared output schema would not describe it.
+                ...(tool.keywords?.length ? { _meta: { [MCP_TOOL_KEYWORDS_META_KEY]: tool.keywords } } : {}),
             },
             // The SDK validates `args` against the registered (wire) schema before this runs.
             async (args: unknown) => registry.callTool(executionContext, toolset, tool.name, args),

@@ -1,4 +1,4 @@
-import { VendureLogger } from '@vendure/core';
+import { LogMeta, VendureLogger } from '@vendure/core';
 
 /**
  * @description
@@ -67,23 +67,31 @@ export class TestingLogger<Spy extends (...args: any[]) => any> implements Vendu
     verboseSpy: Spy;
     warnSpy: Spy;
 
-    debug(message: string, context?: string): void {
-        this.debugSpy(message, context);
+    debug(message: string, context?: string, meta?: LogMeta): void {
+        this.debugSpy(...withMeta([message, context], meta));
     }
 
-    error(message: string, context?: string, trace?: string): void {
-        this.errorSpy(message, context, trace);
+    error(message: string, context?: string, trace?: string, meta?: LogMeta): void {
+        this.errorSpy(...withMeta([message, context, trace], meta));
     }
 
-    info(message: string, context?: string): void {
-        this.infoSpy(message, context);
+    info(message: string, context?: string, meta?: LogMeta): void {
+        this.infoSpy(...withMeta([message, context], meta));
     }
 
-    verbose(message: string, context?: string): void {
-        this.verboseSpy(message, context);
+    verbose(message: string, context?: string, meta?: LogMeta): void {
+        this.verboseSpy(...withMeta([message, context], meta));
     }
 
-    warn(message: string, context?: string): void {
-        this.warnSpy(message, context);
+    warn(message: string, context?: string, meta?: LogMeta): void {
+        this.warnSpy(...withMeta([message, context], meta));
     }
+}
+
+/**
+ * Adds `meta` to the spy's arguments only when it is given, so that assertions written before
+ * `meta` existed, such as `toHaveBeenCalledWith(message, context)`, still match.
+ */
+function withMeta(args: unknown[], meta: LogMeta | undefined): unknown[] {
+    return meta === undefined ? args : [...args, meta];
 }

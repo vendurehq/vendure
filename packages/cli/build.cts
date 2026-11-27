@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -16,6 +17,20 @@ const cliBinPath = path.join(__dirname, 'dist', 'cli.js');
 if (fs.existsSync(cliBinPath)) {
     fs.chmodSync(cliBinPath, 0o755); // NOSONAR - workspace bin symlinks must remain executable after local builds.
 }
+
+// Writes `dist/vendure-commands.json`, from the commands declared with
+// `defineCommand`. The package ships it, and the host builds those commands from it at runtime.
+// The compiled modules are ES modules, so a separate Node process loads them.
+const writeManifest = `
+const { coreCommandDefinitions } = await import('./dist/command-host/core-commands.js');
+const { writeCommandManifest } = await import('@vendure/common/lib/command/manifest');
+const { name, version } = JSON.parse(await (await import('node:fs/promises')).readFile('./package.json', 'utf-8'));
+await writeCommandManifest('./dist', name, version, coreCommandDefinitions);
+`;
+execFileSync(process.execPath, ['--input-type=module', '--eval', writeManifest], {
+    cwd: __dirname,
+    stdio: 'inherit',
+});
 
 function findFilesWithSuffix(directory: string, suffix: string | string[]): string[] {
     const files: string[] = [];

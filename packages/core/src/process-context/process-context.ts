@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
-
 type ProcessContextType = 'server' | 'worker';
 let currentContext: ProcessContextType = 'server';
+let contextIsSet = false;
 
 /**
  * @description
@@ -46,4 +45,16 @@ export class ProcessContext {
  */
 export function setProcessContext(context: ProcessContextType) {
     currentContext = context;
+    contextIsSet = true;
+}
+
+/**
+ * @description
+ * Returns the process context which the bootstrap functions set, or `undefined` before either of
+ * them has run, e.g. in a script which does not bootstrap Vendure.
+ *
+ * @internal
+ */
+export function getProcessContextName(): ProcessContextType | undefined {
+    return contextIsSet ? currentContext : undefined;
 }

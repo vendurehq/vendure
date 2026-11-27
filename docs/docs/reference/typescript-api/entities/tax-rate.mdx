@@ -2,12 +2,14 @@
 title: "TaxRate"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/tax-rate/tax-rate.entity.ts" sourceLine="26" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/tax-rate/tax-rate.entity.ts" sourceLine="29" packageName="@vendure/core" />
 
 A TaxRate defines the rate of tax to apply to a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) based on three factors:
 
 1. the ProductVariant's [TaxCategory](/reference/typescript-api/entities/tax-category#taxcategory)
-2. the applicable [Zone](/reference/typescript-api/entities/zone#zone) ("applicable" being defined by the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy))
+2. the target of the rate: either a country [Region](/reference/typescript-api/entities/region#region), or a [Zone](/reference/typescript-api/entities/zone#zone) ("applicable" being defined
+   by the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy)). Exactly one of the two is set. A country rate
+   takes precedence over a zone rate for the country of the order's shipping address.
 3. the [CustomerGroup](/reference/typescript-api/entities/customer-group#customergroup) of the current Customer
 
 ```ts title="Signature"
@@ -22,10 +24,15 @@ class TaxRate extends VendureEntity implements HasCustomFields {
     @EntityId({ nullable: true })
     categoryId: ID;
     @Index()
-    @ManyToOne(type => Zone, zone => zone.taxRates)
-    zone: Zone;
+    @ManyToOne(type => Zone, zone => zone.taxRates, { nullable: true })
+    zone?: Zone | null;
     @EntityId({ nullable: true })
-    zoneId: ID;
+    zoneId?: ID | null;
+    @Index()
+    @ManyToOne(type => Region, { nullable: true })
+    region?: Region | null;
+    @EntityId({ nullable: true })
+    regionId?: ID | null;
     @Index()
     @ManyToOne(type => CustomerGroup, customerGroup => customerGroup.taxRates, { nullable: true })
     customerGroup?: CustomerGroup;
@@ -37,6 +44,7 @@ class TaxRate extends VendureEntity implements HasCustomFields {
     grossPriceOf(netPrice: number) => number;
     apply(price: number) => TaxLine;
     test(zone: Zone | ID, taxCategory: TaxCategory | ID) => boolean;
+    testRegion(countryCode: string, taxCategory: TaxCategory | ID) => boolean;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
@@ -75,12 +83,22 @@ class TaxRate extends VendureEntity implements HasCustomFields {
 
 ### zone
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | null`}   />
 
 
 ### zoneId
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### region
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/region#region'>Region</a> | null`}   />
+
+The country Region this rate applies to. Mutually exclusive with `zone`.
+### regionId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
 
 
 ### customerGroup
@@ -121,6 +139,11 @@ class TaxRate extends VendureEntity implements HasCustomFields {
 ### test
 
 <MemberInfo kind="method" type={`(zone: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => boolean`}   />
+
+
+### testRegion
+
+<MemberInfo kind="method" type={`(countryCode: string, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => boolean`}   />
 
 
 

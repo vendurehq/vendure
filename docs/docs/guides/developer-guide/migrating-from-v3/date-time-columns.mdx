@@ -83,7 +83,7 @@ await queryRunner.release();
        }
    }
    ```
-4. Run the migration with `npx vendure migrate --run`.
+4. Run the migration with `npx vendure migrate run`.
 
 Both timezones default to those of the process and the database session that run the migration. That is right when you run it from the same deployment as your server. Otherwise pass them:
 

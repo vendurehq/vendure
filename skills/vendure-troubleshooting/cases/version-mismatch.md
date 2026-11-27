@@ -50,7 +50,7 @@ Applies to: Vendure 3.x. Plugin `compatibility` ranges exist since v2.0.0.
 | Third-party plugin not compatible           | Update the plugin to a version whose range includes the current Vendure version                                 | `developer-guide/plugins#step-7-specify-compatibility` |
 | Plugin known to work, no release yet        | Add it to `ignoreCompatibilityErrorsForPlugins` in the `bootstrap()` options (v3.1.0+). Tell the user the risk. | `reference/typescript-api/common/bootstrap`            |
 | Local plugin range too narrow               | Update the `compatibility` range in the local plugin's metadata                                                 | `developer-guide/plugins#step-7-specify-compatibility` |
-| Several lockfiles                           | Keep the lockfile of the package manager the project uses                                                       | `skills/vendure-cli/SKILL.md` ("Running the CLI")      |
+| Several lockfiles                           | Keep the lockfile of the package manager the project uses                                                       | `skills/vendure-cli/SKILL.md` (runner per lockfile)    |
 
 After a remedy, run `vendure doctor --check dependencies config` again.
 
