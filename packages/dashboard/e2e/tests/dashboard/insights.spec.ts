@@ -68,54 +68,68 @@ test.describe('Setup checklist', () => {
                 (response.request().postData() ?? '').includes('StoreReadinessForSetupChecklist'),
         );
 
-    test('lists the findings, keeps an error until the next visit, and reopens from the user menu', async ({
-        page,
-    }) => {
+    test('lists the findings, remembers the fold, and opens again for a new finding', async ({ page }) => {
+        const taxFinding = finding(
+            'store.tax.inclusive-rate-unknown',
+            'ERROR',
+            'No zone rate on the default tax zone',
+        );
+        const passwordFinding = finding(
+            'store.auth.default-superadmin-password',
+            'WARNING',
+            'Default password',
+        );
+        await mockStoreReadiness(page, {
+            data: { storeReadiness: { ready: false, findings: [taxFinding, passwordFinding] } },
+        });
+        await page.goto('/');
+        const checklist = page.getByTestId('setup-checklist');
+        await expect(checklist).toBeVisible();
+        await expect(checklist.getByRole('listitem')).toHaveCount(2);
+        await expect(checklist.getByText('Unknown tax-inclusive rate')).toBeVisible();
+        await expect(checklist.getByText('No zone rate on the default tax zone')).toBeVisible();
+        await expect(checklist.getByRole('link', { name: 'Add tax rate' })).toHaveAttribute(
+            'href',
+            /\/tax-rates$/,
+        );
+        await expect(checklist.getByRole('button', { name: /Hide for now|Dismiss/ })).toHaveCount(0);
+        // The card header is the fold row: there is no separate "Action needed" row.
+        await expect(checklist.getByText('Action needed')).toHaveCount(0);
+
+        // Folding is the only way to put the list away. The card stays, with a count per tone.
+        const fold = checklist.getByRole('button', { name: /Store setup/ });
+        await fold.click();
+        await expect(fold).toHaveAttribute('aria-expanded', 'false');
+        await expect(fold).toContainText('1 error');
+        await expect(fold).toContainText('1 warning');
+
+        // The fold is remembered for this Channel.
+        await page.reload();
+        await expect(checklist.getByRole('button', { name: /Store setup/ })).toHaveAttribute(
+            'aria-expanded',
+            'false',
+        );
+
+        // A new finding opens the list again.
+        await page.unrouteAll({ behavior: 'ignoreErrors' });
         await mockStoreReadiness(page, {
             data: {
                 storeReadiness: {
                     ready: false,
                     findings: [
-                        finding(
-                            'store.tax.inclusive-rate-unknown',
-                            'ERROR',
-                            'No zone rate on the default tax zone',
-                        ),
-                        finding('store.auth.default-superadmin-password', 'WARNING', 'Default password'),
+                        taxFinding,
+                        passwordFinding,
+                        finding('store.channel.no-payment-method', 'ERROR', 'No payment method'),
                     ],
                 },
             },
         });
-        await page.goto('/');
-        const checklist = page.getByTestId('setup-checklist');
-        await expect(checklist).toBeVisible();
-        await expect(checklist.getByTestId('setup-checklist-item')).toHaveCount(2);
-        await expect(checklist.getByText('No zone rate on the default tax zone')).toBeVisible();
-        await expect(checklist.getByRole('link', { name: 'Open' }).first()).toHaveAttribute(
-            'href',
-            /\/tax-rates$/,
-        );
-
-        // With an error, the button hides the card for this visit only.
-        await checklist.getByRole('button', { name: 'Hide for now' }).click();
-        await expect(checklist).toBeHidden();
-        // Hidden for the session, the card does not even run the check.
-        let queried = false;
-        page.on('request', request => {
-            if ((request.postData() ?? '').includes('StoreReadinessForSetupChecklist')) {
-                queried = true;
-            }
-        });
         await page.reload();
-        await expect(page.getByTestId('page-heading')).toBeVisible();
-        await page.waitForLoadState('networkidle');
-        expect(queried).toBe(false);
-        await expect(checklist).toBeHidden();
-
-        await page.locator('[data-sidebar="footer"] [data-sidebar="menu-button"]').click();
-        await page.getByRole('menuitem', { name: 'Setup' }).click();
-        await expect(page).toHaveURL(/setup=true/);
-        await expect(checklist).toBeVisible();
+        await expect(checklist.getByRole('button', { name: /Store setup/ })).toHaveAttribute(
+            'aria-expanded',
+            'true',
+        );
+        await expect(checklist.getByRole('listitem')).toHaveCount(3);
     });
 
     test('stays out of the way on a server without the storeReadiness query', async ({ page }) => {
@@ -140,7 +154,7 @@ test.describe('Setup checklist', () => {
         await page.goto('/?setup=true');
         const checklist = page.getByTestId('setup-checklist');
         // The e2e suite signs in as the superadmin with the default password.
-        await expect(checklist.locator('[data-code="store.auth.default-superadmin-password"]')).toBeVisible();
+        await expect(checklist.getByText('Default superadmin password')).toBeVisible();
         await expect(checklist).not.toContainText('This server cannot check the store setup.');
     });
 
