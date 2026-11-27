@@ -132,8 +132,10 @@ function ArgChip({
         <ArgSummary fieldDef={arg} value={value} omitPrefix={omitPrefix} omitSuffix={omitSuffix} />
     );
 
+    // `align-top`: a 26px chip in the 28px line keeps the line 28px high, so a one-line
+    // sentence is exactly as high as its loading skeleton row. `align-middle` adds 0.17px.
     const chipClasses = cn(
-        'inline-flex max-w-72 items-center truncate align-middle rounded-md border px-1.5 py-0.5 text-sm font-medium',
+        'inline-flex max-w-72 items-center truncate align-top rounded-md border px-1.5 py-0.5 text-sm font-medium',
         isEmpty
             ? isRequiredEmpty
                 ? 'border-dashed border-destructive text-destructive'
