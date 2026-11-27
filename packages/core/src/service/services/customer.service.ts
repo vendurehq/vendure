@@ -834,11 +834,14 @@ export class CustomerService {
         const address = new Address({
             ...input,
             country,
+            customer,
         });
         const createdAddress = await this.connection.getRepository(ctx, Address).save(address);
         await this.customFieldRelationService.updateRelations(ctx, Address, input, createdAddress);
+        // Linked through the address's own customerId rather than by saving customer.addresses:
+        // that save nullifies the customerId of any address a concurrent create committed after
+        // the list was loaded (TypeORM's default orphanedRowAction). See #5819.
         customer.addresses.push(createdAddress);
-        await this.connection.getRepository(ctx, Customer).save(customer, { reload: false });
         await this.enforceSingleDefaultAddress(ctx, createdAddress.id, input);
         await this.historyService.createHistoryEntryForCustomer({
             customerId: customer.id,
