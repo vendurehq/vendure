@@ -167,20 +167,23 @@ export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState 
     const hasErrors = report?.ready === false;
     const keys = findingKeys(findings);
 
-    const items = findings.map((finding, index): ActionNeededItem => {
-        const copy = FINDING_COPY[finding.code] ?? FALLBACK_COPY;
-        return {
-            key: keys[index],
-            tone: finding.severity === 'ERROR' ? 'critical' : 'warning',
-            title: i18n._(copy.title),
-            description: readableFindingMessage(finding.message, channelCode),
-            action: finding.dashboardUrl ? (
-                <Button variant="outline" size="sm" render={<Link to={finding.dashboardUrl} />}>
-                    {i18n._(copy.action)}
-                </Button>
-            ) : undefined,
-        };
-    });
+    const items = findings
+        .map((finding, index): ActionNeededItem => {
+            const copy = FINDING_COPY[finding.code] ?? FALLBACK_COPY;
+            return {
+                key: keys[index],
+                tone: finding.severity === 'ERROR' ? 'critical' : 'warning',
+                title: i18n._(copy.title),
+                description: readableFindingMessage(finding.message, channelCode),
+                action: finding.dashboardUrl ? (
+                    <Button variant="outline" size="sm" render={<Link to={finding.dashboardUrl} />}>
+                        {i18n._(copy.action)}
+                    </Button>
+                ) : undefined,
+            };
+        })
+        // The list shows the findings in the order given: errors first.
+        .sort((a, b) => Number(b.tone === 'critical') - Number(a.tone === 'critical'));
 
     const title = <Trans>Store setup</Trans>;
     const description = isError ? (
@@ -209,7 +212,7 @@ export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState 
                             ? plural(count, { one: '# error', other: '# errors' })
                             : tone === 'warning'
                               ? plural(count, { one: '# warning', other: '# warnings' })
-                              : plural(count, { one: '# note', other: '# notes' })
+                              : plural(count, { one: '# info', other: '# info' })
                     }
                 />
             </Card>
