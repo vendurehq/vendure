@@ -19,5 +19,10 @@ export const LS_KEY_SHIPPING_TEST_ADDRESS = 'vendure-shipping-test-address';
  * boot screen of `index.html` reads it, so a signed-in load shows the app shell from the first paint.
  */
 export const LS_KEY_BOOT_SHELL = 'vendure-boot-shell';
+/**
+ * The prefix of the keys under which an operation summary stores the width of
+ * the entity names it showed, so the skeleton of its next load has that width.
+ */
+export const LS_KEY_ARG_SUMMARY_WIDTH_PREFIX = 'vendure-arg-summary-width:';
 /** The settings store key under which the server stores the user settings. */
 export const SETTINGS_STORE_KEY_USER_SETTINGS = 'vendure.dashboard.userSettings';

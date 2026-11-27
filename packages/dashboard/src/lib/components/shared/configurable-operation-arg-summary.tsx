@@ -1,5 +1,6 @@
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
+import { LS_KEY_ARG_SUMMARY_WIDTH_PREFIX } from '@/vdb/constants.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import {
     ConfigurableFieldDef,
@@ -14,7 +15,7 @@ import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Plural, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { ComponentType } from 'react';
+import { ComponentType, useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * @description
@@ -330,10 +331,29 @@ function NameList({ names }: Readonly<{ names: string[] }>) {
     );
 }
 
+/** The width in px stored under `key`, or undefined. Blocked or malformed storage gives undefined. */
+function readSummaryWidth(key: string): number | undefined {
+    try {
+        const width = Number(localStorage.getItem(LS_KEY_ARG_SUMMARY_WIDTH_PREFIX + key));
+        return width > 0 ? width : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function writeSummaryWidth(key: string, width: number) {
+    try {
+        localStorage.setItem(LS_KEY_ARG_SUMMARY_WIDTH_PREFIX + key, String(width));
+    } catch {
+        // Storage can be full or blocked.
+    }
+}
+
 /**
  * The names of the entities an arg holds. While they load, a skeleton holds their
- * place, so the sentence does not show a count that then changes to the names. If
- * they cannot load, the count shows.
+ * place, so the sentence does not show a count that then changes to the names. The
+ * skeleton has the width the names had at the last load, so the parts of the
+ * sentence after it keep their place. If the names cannot load, the count shows.
  */
 function EntityNamesSummary<TData>({
     ids,
@@ -353,13 +373,28 @@ function EntityNamesSummary<TData>({
         enabled: ids.length > 0,
         placeholderData: undefined,
     });
+    const widthKey = `${queryKey}:${ids.join(',')}`;
+    const [rememberedWidth] = useState(() => readSummaryWidth(widthKey));
+    const namesRef = useRef<HTMLSpanElement>(null);
+    useLayoutEffect(() => {
+        const width = namesRef.current?.getBoundingClientRect().width;
+        if (width) writeSummaryWidth(widthKey, width);
+    }, [data, widthKey]);
     if (data) {
-        return <NameList names={names(data)} />;
+        return (
+            <span ref={namesRef}>
+                <NameList names={names(data)} />
+            </span>
+        );
     }
     if (isLoading) {
         return (
             <span data-slot="arg-summary-skeleton">
-                <Skeleton className="inline-block h-[0.8lh] w-24 align-middle" aria-hidden="true" />
+                <Skeleton
+                    className="inline-block h-[0.8lh] w-24 align-middle"
+                    style={rememberedWidth ? { width: rememberedWidth } : undefined}
+                    aria-hidden="true"
+                />
                 <span className="sr-only">{t`Loading…`}</span>
             </span>
         );
