@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ListMyOrdersTool } from './list-my-orders.tool';
 
-const serializer = { order: (order: unknown) => order } as any;
+const serializer = { order: (_ctx: unknown, order: unknown) => order } as any;
 
 describe('ListMyOrdersTool', () => {
     // The tool has no sort argument, so the default order is the only order a caller ever gets. It

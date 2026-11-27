@@ -95,7 +95,7 @@ export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
         const result = await this.orderService.findAll(ctx, options, ORDER_LIST_RELATIONS);
         translateLineVariants(result.items, this.translator, ctx);
         return page(
-            result.items.map(order => this.serializer.order(order)),
+            result.items.map(order => this.serializer.order(ctx, order)),
             result.totalItems,
             input,
         );

@@ -18,6 +18,7 @@ import {
     PaymentMethodHandler,
     Permission,
     PluginCommonModule,
+    Product,
     RequestContext,
     RequestContextService,
     Session,
@@ -226,12 +227,19 @@ const usOnlyShippingChecker = new ShippingEligibilityChecker({
 describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
-        // Three Address custom fields: one a shopper may write, one internal, one admin-only.
+        // Three Address custom fields: one a shopper may write, one internal, one admin-only. The
+        // Product ones are read back by the tools, each by the rules of its config.
         customFields: {
             Address: [
                 { name: 'deliveryNote', type: 'string' },
                 { name: 'internalRef', type: 'string', internal: true },
                 { name: 'riskScore', type: 'int', public: false },
+            ],
+            Product: [
+                { name: 'material', type: 'string' },
+                { name: 'staffNote', type: 'string', public: false },
+                { name: 'margin', type: 'int', requiresPermission: Permission.ReadSettings },
+                { name: 'badge', type: 'string', public: true, requiresPermission: Permission.ReadSettings },
             ],
         },
         orderOptions: { orderByCodeAccessStrategy },
@@ -1676,6 +1684,27 @@ describe('MCP built-in shop tools', () => {
         expect(past.variants).toEqual([]);
         expect(past.variantTotal).toBe(shirtVariantCount);
         expect(past.hasMoreVariants).toBe(false);
+    });
+
+    // #5656 — a shopper gets the custom fields the Shop API would show
+    it('get_product returns a shopper only the custom fields the Shop API would show', async () => {
+        await connection.getRepository(adminCtx, Product).update(productId, {
+            customFields: { material: 'Oak', staffNote: 'fragile', margin: 40, badge: 'new' },
+        });
+        try {
+            const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }, 1));
+
+            expect(response.body.result.isError).toBeUndefined();
+            // `public: true` makes a permission-gated field public, as in the Shop API.
+            expect(response.body.result.structuredContent.product.customFields).toEqual({
+                material: 'Oak',
+                badge: 'new',
+            });
+        } finally {
+            await connection.getRepository(adminCtx, Product).update(productId, {
+                customFields: { material: null, staffNote: null, margin: null, badge: null },
+            });
+        }
     });
 
     it('returns the product variants a shopper needs to add anything to a cart', async () => {

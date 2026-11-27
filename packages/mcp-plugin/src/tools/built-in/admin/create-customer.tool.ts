@@ -40,6 +40,6 @@ export class CreateCustomerTool implements McpToolHandler<CreateCustomerToolInpu
 
     async execute(ctx: RequestContext, input: CreateCustomerToolInput) {
         await this.customFieldInput.assertWritable(ctx, 'Customer', input.input.customFields);
-        return this.serializer.customerOrError(await this.customerService.create(ctx, input.input));
+        return this.serializer.customerOrError(ctx, await this.customerService.create(ctx, input.input));
     }
 }
