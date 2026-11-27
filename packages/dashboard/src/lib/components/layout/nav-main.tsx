@@ -23,7 +23,9 @@ import { useLingui } from '@lingui/react';
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import * as React from 'react';
+import { uiConfig } from 'virtual:vendure-ui-config';
 import { NavItemWrapper } from './nav-item-wrapper.js';
+import { openActiveSections, toggleOpenSection } from './nav-open-sections.js';
 import { buildShortcutMap, isEditableTarget } from './navigation-shortcuts.js';
 
 /**
@@ -307,15 +309,10 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
         };
     }, [cancelNavigationChord, isMobile, router, shortcutMap, startNavigationChord]);
 
-    // Handle top section open/close (only one section open at a time)
+    const { singleOpenSection } = uiConfig.navigation;
+
     const handleTopSectionToggle = (sectionId: string, isOpen: boolean) => {
-        if (isOpen) {
-            // When opening a section, close all others
-            setOpenTopSectionIds(new Set([sectionId]));
-        } else {
-            // When closing a section, remove it from the set
-            setOpenTopSectionIds(new Set());
-        }
+        setOpenTopSectionIds(prev => toggleOpenSection(prev, sectionId, isOpen, singleOpenSection));
     };
 
     // Handle bottom section open/close
@@ -335,21 +332,16 @@ export function NavMain({ items: allItems }: Readonly<{ items: Array<NavMenuSect
     React.useLayoutEffect(() => {
         const { activeTopSections, activeBottomSection } = findActiveSections(resolved);
 
-        // Replace open sections with only the active one. Return the previous Set when
-        // the contents match so React bails out of the re-render: this effect is keyed
-        // on `resolved`, and an unconditional fresh Set would turn any future
-        // destabilisation of `ctx` from wasted work into an infinite render loop.
-        setOpenTopSectionIds(prev => {
-            if (prev.size === activeTopSections.size && [...activeTopSections].every(id => prev.has(id))) {
-                return prev;
-            }
-            return activeTopSections;
-        });
+        // openActiveSections returns the previous Set when the contents match so React
+        // bails out of the re-render: this effect is keyed on `resolved`, and an
+        // unconditional fresh Set would turn any future destabilisation of `ctx` from
+        // wasted work into an infinite render loop.
+        setOpenTopSectionIds(prev => openActiveSections(prev, activeTopSections, singleOpenSection));
 
         if (activeBottomSection) {
             setOpenBottomSectionId(activeBottomSection);
         }
-    }, [currentPath, resolved, findActiveSections]);
+    }, [currentPath, resolved, findActiveSections, singleOpenSection]);
 
     // Close mobile sidebar on route change
     const prevPathRef = React.useRef(currentPath);

@@ -45,10 +45,15 @@ declare module 'virtual:vendure-ui-config' {
         refundReasons: Array<{ value: string; label: string }>;
     }
 
+    interface ResolvedNavigationConfig {
+        singleOpenSection: boolean;
+    }
+
     interface ResolvedUiConfig {
         api: ResolvedApiConfig;
         i18n: ResolvedI18nConfig;
         orders: ResolvedOrdersConfig;
+        navigation: ResolvedNavigationConfig;
         version: string;
     }
 

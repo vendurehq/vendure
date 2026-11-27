@@ -137,6 +137,26 @@ export interface OrdersConfig {
 
 /**
  * @description
+ * Options used by the {@link vendureDashboardPlugin} to configure the navigation menu.
+ *
+ * @docsCategory vite-plugin
+ * @docsPage vendureDashboardPlugin
+ * @since 3.9.0
+ */
+export interface NavigationConfig {
+    /**
+     * @description
+     * Whether opening a top section of the navigation menu closes the other top sections.
+     * If `false`, open top sections stay open until the user closes them, also when
+     * navigating to another page. The bottom sections always keep only one section open.
+     *
+     * @default true
+     */
+    singleOpenSection?: boolean;
+}
+
+/**
+ * @description
  * Options used by the {@link vendureDashboardPlugin} to configure aspects of the
  * Dashboard UI behaviour.
  *
@@ -160,6 +180,13 @@ export interface UiConfigPluginOptions {
      * Configuration for order-related settings
      */
     orders?: OrdersConfig;
+    /**
+     * @description
+     * Configuration for the navigation menu
+     *
+     * @since 3.9.0
+     */
+    navigation?: NavigationConfig;
 }
 
 /**
@@ -184,6 +211,11 @@ export interface ResolvedUiConfig {
      * Order-related settings with all defaults applied
      */
     orders: Required<OrdersConfig>;
+    /**
+     * @description
+     * Navigation menu settings with all defaults applied
+     */
+    navigation: Required<NavigationConfig>;
     /**
      * @description
      * The version of the @vendure/dashboard package.
