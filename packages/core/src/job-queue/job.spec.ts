@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { RelationNotJoinedError } from '../common/error/errors';
+import { Logger } from '../config/logger/vendure-logger';
+import { Order as OrderEntity } from '../entity/order/order.entity';
+import { CalculatedPropertySubscriber } from '../entity/subscribers';
 
 import { Job } from './job';
 
@@ -20,6 +25,71 @@ describe('Job class', () => {
             expect(job.data).toEqual({
                 code: 123,
                 totalPrice: 42,
+            });
+        });
+
+        describe('getters that need a relation that was not joined', () => {
+            afterEach(() => {
+                vi.restoreAllMocks();
+            });
+
+            it('leaves out a prototype getter that throws RelationNotJoinedError', () => {
+                const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+                class Order {
+                    code = 123;
+                    get totalQuantity(): number {
+                        throw new RelationNotJoinedError('lines not joined');
+                    }
+                    get totalPrice() {
+                        return 42;
+                    }
+                }
+
+                const job = new Job({
+                    queueName: 'test',
+                    data: { order: new Order() },
+                });
+
+                expect(job.data).toEqual({ order: { code: 123, totalPrice: 42 } });
+                expect(warn).toHaveBeenCalledTimes(1);
+                expect(warn.mock.calls[0][0]).toContain('order.totalQuantity');
+            });
+
+            it('rethrows any other error thrown by a getter', () => {
+                class Order {
+                    code = 123;
+                    get totalQuantity(): number {
+                        throw new TypeError('a real bug');
+                    }
+                }
+
+                expect(() => new Job({ queueName: 'test', data: { order: new Order() } })).toThrow(
+                    'a real bug',
+                );
+            });
+
+            it('queues an Order loaded without lines', () => {
+                const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+                const order = new OrderEntity({ id: 1, code: 'ABC123', subTotal: 1000, shipping: 0 });
+                // TypeORM runs this on every loaded entity. It copies the @Calculated getters
+                // onto the instance as own properties.
+                new CalculatedPropertySubscriber().afterLoad(order);
+
+                const job = new Job({
+                    queueName: 'send-email',
+                    data: { templateVars: { order } },
+                });
+
+                const serializedOrder = (job.data as any).templateVars.order;
+                // `total` comes after `discounts` on the entity, so this proves the copy goes on.
+                expect(serializedOrder).toMatchObject({ id: 1, code: 'ABC123', subTotal: 1000, total: 1000 });
+                expect(serializedOrder).not.toHaveProperty('totalQuantity');
+                expect(serializedOrder).not.toHaveProperty('discounts');
+                expect(serializedOrder).not.toHaveProperty('taxSummary');
+                expect(warn).toHaveBeenCalledTimes(1);
+                expect(warn.mock.calls[0][0]).toContain(
+                    'templateVars.order.discounts, templateVars.order.totalQuantity, templateVars.order.taxSummary',
+                );
             });
         });
 
