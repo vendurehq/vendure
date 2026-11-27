@@ -1,5 +1,6 @@
 import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useLingui } from '@lingui/react/macro';
@@ -47,7 +48,20 @@ export function CollectionContentsTable({ collectionId, title }: Readonly<Collec
                     collectionId: collectionId,
                 };
             }}
+            // SKU has a width and the name takes the rest of the row, so the columns
+            // stand where the rows will put them while the list loads. The name
+            // skeleton is as tall as the name's button, so a row keeps its height.
+            skeletonCells={{
+                name: (
+                    <div className="flex h-8.5 items-center">
+                        <Skeleton className="h-4 w-48" />
+                    </div>
+                ),
+            }}
             customizeColumns={{
+                sku: {
+                    meta: { width: '12rem' },
+                },
                 name: {
                     header: 'Variant name',
                     cell: ({ row }) => {
