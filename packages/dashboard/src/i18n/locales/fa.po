@@ -2017,6 +2017,10 @@ msgstr "{0, plural, one {بارگذاری # فایل ناموفق بود} other 
 msgid "We couldn't load these metrics"
 msgstr "نتوانستیم این معیارها را بارگذاری کنیم"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "یک کانال انتخاب کنید"

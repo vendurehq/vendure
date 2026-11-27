@@ -2017,6 +2017,10 @@ msgstr "{0, plural, other {# 個資源上傳失敗}}"
 msgid "We couldn't load these metrics"
 msgstr "無法載入這些指標"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "選取一個通路"

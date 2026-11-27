@@ -2017,6 +2017,10 @@ msgstr "{0, plural, one {Det gick inte att ladda upp # tillgång} other {Det gic
 msgid "We couldn't load these metrics"
 msgstr "Vi kunde inte läsa in dessa mätvärden"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "Välj en kanal"

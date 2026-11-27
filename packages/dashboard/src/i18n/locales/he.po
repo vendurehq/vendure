@@ -2017,6 +2017,10 @@ msgstr "{0, plural, one {העלאת קובץ אחד נכשלה} other {העלא�
 msgid "We couldn't load these metrics"
 msgstr "לא הצלחנו לטעון את המדדים האלה"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "בחר ערוץ"

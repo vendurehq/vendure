@@ -366,6 +366,81 @@ Hiding a nav entry changes what the dashboard renders and nothing else. An admin
 
 `BUILT_IN_NAV_SECTION_IDS` and `BUILT_IN_NAV_ITEM_IDS` keep working when an id is renamed, and turn a removed id into a compile error. Neither constant covers restructuring: a future release could move an item into another section or drop it. When you target a built-in entry, re-check the sidebar after upgrading.
 
+## Command Palette Entries
+
+The ⌘K command palette (Ctrl+K on Windows and Linux) lists every page of the navigation menu. Your nav menu items appear there without extra work. Use `commandPaletteItems` to add entries that are not pages of the menu: a deep link to a filtered list or a create form, or an action.
+
+```tsx title="src/plugins/reviews/dashboard/index.tsx"
+import { defineDashboardExtension } from '@vendure/dashboard';
+import { RefreshCw, Star } from 'lucide-react';
+
+import { refreshReviewScores } from './api';
+
+defineDashboardExtension({
+    commandPaletteItems: [
+        {
+            id: 'pending-reviews',
+            title: 'Pending reviews',
+            icon: Star,
+            // More words the search matches, besides the title
+            keywords: ['moderation', 'ratings'],
+            // The id of a nav section lists the entry with that section's pages
+            group: 'catalog',
+            url: '/reviews?status=pending',
+            requiresPermission: 'ReadCatalog',
+        },
+        {
+            id: 'refresh-review-scores',
+            title: 'Refresh review scores',
+            icon: RefreshCw,
+            // Any other value starts a group with this heading
+            group: 'Reviews',
+            onSelect: async ({ navigate }) => {
+                await refreshReviewScores();
+                navigate('/reviews');
+            },
+            requiresPermission: ['UpdateCatalog', 'UpdateProduct'],
+        },
+    ],
+});
+```
+
+Each entry sets exactly one of `url` (the page it opens) and `onSelect` (the action it runs). The palette closes before `onSelect` runs.
+
+- **`group`**: the id of a nav section, such as `'catalog'` (see `BUILT_IN_NAV_SECTION_IDS`), lists the entry after that section's pages. Any other value makes a group of its own, after the nav groups, with the value as its heading. Without a group, the entry is listed with the top-level pages.
+- **`order`**: sorts the extension entries of a group. Entries without an order come last, sorted by title.
+- **`requiresPermission`**: hides the entry from administrators who hold none of the listed permissions on the active channel, as for a nav menu item.
+
+The title, the group heading and the keywords are passed through the Dashboard's translations, like nav menu titles.
+
+### Opening the palette from your own component
+
+An extension that replaces the `search` toolbar item can reuse the palette. `CommandPaletteTrigger` is the built-in search field, and `useOpenCommandPalette()` returns a function that opens the palette. The ⌘K shortcut keeps working either way.
+
+```tsx title="src/plugins/my-plugin/dashboard/index.tsx"
+import { Button, defineDashboardExtension, useOpenCommandPalette } from '@vendure/dashboard';
+import { Search } from 'lucide-react';
+
+function MySearchButton() {
+    const openPalette = useOpenCommandPalette();
+    return (
+        <Button variant="ghost" size="icon" aria-label="Search" onClick={() => openPalette?.()}>
+            <Search />
+        </Button>
+    );
+}
+
+defineDashboardExtension({
+    toolbarItems: [
+        {
+            id: 'my-search',
+            component: MySearchButton,
+            position: { itemId: 'search', order: 'replace' },
+        },
+    ],
+});
+```
+
 ## Unauthenticated Routes
 
 By default, all navigation is assumed to be for authenticated routes, i.e. the routes are only accessible to administrators

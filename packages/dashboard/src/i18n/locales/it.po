@@ -2017,6 +2017,10 @@ msgstr "{0, plural, one {Caricamento di # risorsa non riuscito} other {Caricamen
 msgid "We couldn't load these metrics"
 msgstr "Impossibile caricare queste metriche"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "Seleziona un canale"

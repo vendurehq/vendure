@@ -2017,6 +2017,10 @@ msgstr "{0, plural, one {Kunne ikke laste opp # ressurs} other {Kunne ikke laste
 msgid "We couldn't load these metrics"
 msgstr "Vi kunne ikke laste disse metrikkene"
 
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
+
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
 msgstr "Velg en kanal"

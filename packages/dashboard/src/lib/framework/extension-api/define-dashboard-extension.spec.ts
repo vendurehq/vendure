@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getCommandPaletteItems } from '../command-palette/command-palette-extensions.js';
 import {
     getDashboardWidgetFilters,
     getDashboardWidgetRegistry,
@@ -672,5 +673,75 @@ describe('Dashboard custom providers', () => {
         expect(() => executeDashboardExtensionCallbacks()).toThrow(
             'Duplicate dashboard custom provider ids detected: "duplicate-provider". Provider ids must be globally unique.',
         );
+    });
+});
+
+describe('defineDashboardExtension - commandPaletteItems', () => {
+    beforeEach(() => {
+        globalRegistry.set('commandPaletteItemRegistry', () => new Map());
+        (globalRegistry as any).registry.set('registerDashboardExtensionCallbacks', new Set<() => void>());
+    });
+
+    it('registers entries in registration order, keeping every field', () => {
+        const onSelect = vi.fn();
+        const deepLink = {
+            id: 'pending-reviews',
+            title: 'Pending reviews',
+            url: '/reviews?status=pending',
+            keywords: ['moderation'],
+            group: 'catalog',
+            requiresPermission: ['ReadCatalog'],
+        };
+        defineDashboardExtension({
+            commandPaletteItems: [deepLink, { id: 'clear-cache', title: 'Clear cache', onSelect }],
+        });
+        executeDashboardExtensionCallbacks();
+
+        expect(getCommandPaletteItems()).toEqual([
+            deepLink,
+            { id: 'clear-cache', title: 'Clear cache', onSelect },
+        ]);
+    });
+
+    it('lets a later registration with the same id replace an entry, with a warning', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({ commandPaletteItems: [{ id: 'x', title: 'First', url: '/a' }] });
+        defineDashboardExtension({ commandPaletteItems: [{ id: 'x', title: 'Second', url: '/b' }] });
+        executeDashboardExtensionCallbacks();
+
+        expect(getCommandPaletteItems()).toEqual([{ id: 'x', title: 'Second', url: '/b' }]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"x" is already registered'));
+        warn.mockRestore();
+    });
+
+    it('does not warn when the same registration runs twice', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({ commandPaletteItems: [{ id: 'x', title: 'X', url: '/x' }] });
+        executeDashboardExtensionCallbacks();
+        executeDashboardExtensionCallbacks();
+
+        expect(getCommandPaletteItems()).toHaveLength(1);
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it('skips an entry with neither or both of url and onSelect, with a warning', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        defineDashboardExtension({
+            commandPaletteItems: [
+                // The type rejects both cases; the runtime check is for JavaScript callers.
+                // @ts-expect-error neither url nor onSelect
+                { id: 'neither', title: 'Neither' },
+                // @ts-expect-error both url and onSelect
+                { id: 'both', title: 'Both', url: '/both', onSelect: () => undefined },
+                { id: 'ok', title: 'OK', url: '/ok' },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        expect(getCommandPaletteItems().map(item => item.id)).toEqual(['ok']);
+        expect(warn).toHaveBeenCalledTimes(2);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"neither" was not added'));
+        warn.mockRestore();
     });
 });
