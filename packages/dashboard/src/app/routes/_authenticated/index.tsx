@@ -79,6 +79,10 @@ function DashboardPage() {
     const [editMode, setEditMode] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const prevEditModeRef = useRef(editMode);
+    // The `settingsInitializedAt` value the draft was last built from. If the settings are
+    // initialized again while editing, the draft predates the stored value and is not saved.
+    const draftInitializedAtRef = useRef<number | null>(null);
+    const [rebuildDraftRequest, setRebuildDraftRequest] = useState(0);
     const { t } = useLingui();
     const { i18n } = useLinguiRuntime();
     const [dateRange, setDateRange] = useState<DefinedDateRange>({
@@ -95,6 +99,7 @@ function DashboardPage() {
     const {
         settings,
         settingsReady,
+        settingsInitializedAt,
         saveWidgetInstanceLayouts,
         setHiddenWidgets: persistHiddenWidgets,
         updateWidgetInstanceConfig,
@@ -137,7 +142,8 @@ function DashboardPage() {
         setHiddenWidgets(state.hidden);
         setLoadedWidgetIds(state.loadedWidgetIds);
         setIsInitialized(true);
-    }, [settingsReady, hasPermissions]);
+        draftInitializedAtRef.current = settingsInitializedAt;
+    }, [settingsReady, settingsInitializedAt, rebuildDraftRequest, hasPermissions]);
 
     // Outside edit mode there's no Save step, so config is persisted right away (e.g. the
     // Metrics widget's Count/Total tab must survive a reload). While editing, it stays in
@@ -183,7 +189,17 @@ function DashboardPage() {
     // Save layout when edit mode is turned off
     useEffect(() => {
         // Only save when transitioning from edit mode ON to OFF
-        if (prevEditModeRef.current && !editMode && isInitialized) {
+        if (
+            prevEditModeRef.current &&
+            !editMode &&
+            isInitialized &&
+            draftInitializedAtRef.current !== settingsInitializedAt
+        ) {
+            // The settings were initialized from the server while editing, e.g. by a successful
+            // read after a failed one. The draft was built from the previous value, so saving it
+            // would replace the stored layout. Rebuild the draft from the stored value instead.
+            setRebuildDraftRequest(request => request + 1);
+        } else if (prevEditModeRef.current && !editMode && isInitialized) {
             // Includes hidden widgets so a hidden single-instance widget keeps its
             // position/size when re-added, and commits draft config atomically with layout.
             const layouts = [...widgets, ...hiddenWidgets].map(widget => ({
@@ -215,6 +231,7 @@ function DashboardPage() {
     }, [
         editMode,
         isInitialized,
+        settingsInitializedAt,
         widgets,
         hiddenWidgets,
         loadedWidgetIds,

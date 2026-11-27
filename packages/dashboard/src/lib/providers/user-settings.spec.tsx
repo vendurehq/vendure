@@ -5,7 +5,7 @@ import { act, useContext } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SETTINGS_STORE_KEY_USER_SETTINGS } from '../storage-keys.js';
+import { LS_KEY_USER_SETTINGS, SETTINGS_STORE_KEY_USER_SETTINGS } from '../storage-keys.js';
 import { AuthContext, AuthProvider } from './auth.js';
 import { UserSettingsContext, type UserSettingsContextType, UserSettingsProvider } from './user-settings.js';
 
@@ -165,6 +165,95 @@ describe('UserSettingsProvider', () => {
         await act(async () => context.setTheme('dark'));
         await flush();
         expect(savedValues()).toEqual([expect.objectContaining({ displayLanguage: 'de', theme: 'dark' })]);
+    });
+
+    // #5646 — changes made after a failed read must be kept and saved once a later read
+    // succeeds, merged over the stored value per table and per key
+    it('keeps and saves changes made after a failed read when a later read succeeds', async () => {
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+        expect(context.settingsReady).toBe(true);
+
+        await act(async () => context.setTheme('dark'));
+        await act(async () => context.setTableSettings('products', 'pageSize', 50));
+        await flush();
+        expect(apiMock.mutate).not.toHaveBeenCalled();
+
+        apiMock.query.mockResolvedValue({
+            getSettingsStoreValue: {
+                displayLanguage: 'de',
+                theme: 'light',
+                tableSettings: { products: { pageSize: 10, columnVisibility: { sku: false } } },
+            },
+        });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+
+        expect(context.settings.displayLanguage).toBe('de');
+        expect(context.settings.theme).toBe('dark');
+        expect(context.settings.tableSettings).toEqual({
+            products: { pageSize: 50, columnVisibility: { sku: false } },
+        });
+        expect(savedValues().at(-1)).toEqual(
+            expect.objectContaining({
+                displayLanguage: 'de',
+                theme: 'dark',
+                tableSettings: { products: { pageSize: 50, columnVisibility: { sku: false } } },
+            }),
+        );
+    });
+
+    // #5646 — with no stored value, a read after a failed read saves only when something changed
+    it('does not save the local settings after a failed read and an empty read until they change', async () => {
+        localStorage.setItem(LS_KEY_USER_SETTINGS, JSON.stringify({ theme: 'light' }));
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: null });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+        expect(apiMock.mutate).not.toHaveBeenCalled();
+
+        await act(async () => context.setTheme('dark'));
+        await flush();
+        expect(savedValues()).toEqual([expect.objectContaining({ theme: 'dark' })]);
+    });
+
+    it('saves a change made after a failed read when the next read finds no stored value', async () => {
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+        await act(async () => context.setTheme('dark'));
+        await flush();
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: null });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+
+        expect(context.settings.theme).toBe('dark');
+        expect(savedValues()).toEqual([expect.objectContaining({ theme: 'dark' })]);
+    });
+
+    // #5646 — changes made after a failed read in one session must not carry into the next one
+    it('does not merge changes made after a failed read into the session after a reset', async () => {
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+        await act(async () => context.setTheme('dark'));
+        await flush();
+
+        apiMock.query.mockRejectedValue(forbiddenError());
+        await act(async () => {
+            queryClient.clear();
+            context.resetServerSettings();
+        });
+        await flush();
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: { displayLanguage: 'fr' } });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+
+        expect(context.settings.displayLanguage).toBe('fr');
+        expect(context.settings.theme).toBe('system');
+        expect(apiMock.mutate).not.toHaveBeenCalled();
     });
 
     it('does not initialize on an UNAUTHORIZED read', async () => {
@@ -408,5 +497,135 @@ describe('UserSettingsProvider with AuthProvider', () => {
                 tableSettings: {},
             }),
         );
+    });
+
+    // DataPromptTest/vendure#1 — changes made after a failed read are kept and saved once a read succeeds
+    describe('failed read and initialization signal', () => {
+        let container: HTMLDivElement;
+        let root: Root;
+        let queryClient: QueryClient;
+        let context: UserSettingsContextType;
+
+        function Probe() {
+            context = useContext(UserSettingsContext)!;
+            return null;
+        }
+
+        async function flush() {
+            for (let i = 0; i < 5; i++) {
+                await act(async () => {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                });
+            }
+        }
+
+        async function render() {
+            await act(async () => {
+                root.render(
+                    <QueryClientProvider client={queryClient}>
+                        <UserSettingsProvider queryClient={queryClient}>
+                            <Probe />
+                        </UserSettingsProvider>
+                    </QueryClientProvider>,
+                );
+            });
+            await flush();
+        }
+
+        function savedValues() {
+            return apiMock.mutate.mock.calls.map(([, variables]) => variables.input.value);
+        }
+
+        beforeEach(() => {
+            localStorage.clear();
+            apiMock.query.mockReset();
+            apiMock.mutate.mockReset();
+            apiMock.mutate.mockResolvedValue({ setSettingsStoreValue: { result: true } });
+            queryClient = new QueryClient({ defaultOptions: { queries: { placeholderData: keepPreviousData } } });
+            container = document.createElement('div');
+            root = createRoot(container);
+        });
+
+        afterEach(() => {
+            act(() => root.unmount());
+            queryClient.clear();
+        });
+
+    it('merges changes made after a failed read over the stored value and saves them', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+        expect(context.settingsReady).toBe(true);
+        expect(savedValues()).toEqual([]);
+
+        await act(async () => context.setTheme('dark'));
+        await flush();
+
+        apiMock.query.mockResolvedValue({
+            getSettingsStoreValue: { displayLanguage: 'de', theme: 'light' },
+        });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settings.displayLanguage).toBe('de');
+        expect(context.settings.theme).toBe('dark');
+        expect(savedValues()).toEqual([
+            expect.objectContaining({ displayLanguage: 'de', theme: 'dark' }),
+        ]);
+    });
+
+    // DataPromptTest/vendure#1 — table settings are merged per table and per key after a failed read
+    it('keeps the other stored keys of a table when only one key changed after a failed read', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+
+        await act(async () => context.setTableSettings('products', 'pageSize', 37));
+        await flush();
+
+        apiMock.query.mockResolvedValue({
+            getSettingsStoreValue: {
+                tableSettings: {
+                    products: { pageSize: 10, columnOrder: ['name'] },
+                    orders: { pageSize: 5 },
+                },
+            },
+        });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settings.tableSettings).toEqual({
+            products: { pageSize: 37, columnOrder: ['name'] },
+            orders: { pageSize: 5 },
+        });
+        expect(savedValues()).toEqual([
+            expect.objectContaining({
+                tableSettings: {
+                    products: { pageSize: 37, columnOrder: ['name'] },
+                    orders: { pageSize: 5 },
+                },
+            }),
+        ]);
+    });
+
+    // DataPromptTest/vendure#1 — settingsInitializedAt signals every initialization, settingsReady only turns true
+    it('changes settingsInitializedAt when settings are initialized after a late successful read', async () => {
+        apiMock.query.mockRejectedValueOnce(graphQLError('Network request failed'));
+        await render();
+        const afterFailure = context.settingsInitializedAt;
+        expect(context.settingsReady).toBe(true);
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: { displayLanguage: 'de' } });
+        await act(async () => {
+            await queryClient.invalidateQueries();
+        });
+        await flush();
+
+        expect(context.settingsInitializedAt).toBeGreaterThan(afterFailure);
+        expect(context.settingsReady).toBe(true);
+        expect(context.settings.displayLanguage).toBe('de');
+    });
     });
 });
