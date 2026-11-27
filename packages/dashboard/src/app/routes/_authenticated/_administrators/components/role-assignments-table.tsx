@@ -91,12 +91,15 @@ export function RoleAssignmentsTable({
 }: Readonly<RoleAssignmentsTableProps>) {
     const { t } = useLingui();
     const { activeChannel } = useChannel();
-    const { hasPermissions } = usePermissions();
+    const { hasPermissions, permissionsLoaded } = usePermissions();
     const { roles } = useRoles();
     const { nonGrantableRoleIds, grantableChannelIds } = useGrantableRoles();
     // The assign / remove mutations are guarded by UpdateAdministrator on the server,
     // for API-key Users too.
     const canEdit = hasPermissions(['UpdateAdministrator']);
+    // Until the permissions load, the edit controls keep their place, disabled, so the
+    // table does not grow when they appear. They go only if the permission is missing.
+    const editShown = canEdit || !permissionsLoaded;
     const [newRoleId, setNewRoleId] = useState('');
     const [pickedChannelIds, setPickedChannelIds] = useState<string[] | undefined>();
     const [filter, setFilter] = useState('');
@@ -189,13 +192,13 @@ export function RoleAssignmentsTable({
                         <TableHead>
                             <Trans>Channels</Trans>
                         </TableHead>
-                        {canEdit && <TableHead className="w-12" />}
+                        {editShown && <TableHead className="w-12" />}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {visibleGroups.length === 0 && (
                         <TableRow>
-                            <TableCell colSpan={canEdit ? 3 : 2} className="text-muted-foreground">
+                            <TableCell colSpan={editShown ? 3 : 2} className="text-muted-foreground">
                                 {groups.length === 0 ? (
                                     <Trans>No roles assigned</Trans>
                                 ) : (
@@ -247,7 +250,7 @@ export function RoleAssignmentsTable({
                                                     variant="default"
                                                     className="text-xs"
                                                     onRemove={
-                                                        canEdit
+                                                        editShown
                                                             ? () =>
                                                                   removePairs(group.roleId, [
                                                                       channel.channelId,
@@ -255,11 +258,11 @@ export function RoleAssignmentsTable({
                                                             : undefined
                                                     }
                                                     removeLabel={
-                                                        canEdit
+                                                        editShown
                                                             ? t`Remove ${roleLabel(group.role)} on ${channelLabel(channel.code)}`
                                                             : undefined
                                                     }
-                                                    disabled={removing}
+                                                    disabled={removing || !canEdit}
                                                 >
                                                     {onChannelSelect ? (
                                                         <Tooltip>
@@ -306,11 +309,11 @@ export function RoleAssignmentsTable({
                                         </div>
                                     )}
                                 </TableCell>
-                                {canEdit && (
+                                {editShown && (
                                     <TableCell className="align-top">
                                         <RemoveRoleButton
                                             group={fullGroup}
-                                            disabled={removing}
+                                            disabled={removing || !canEdit}
                                             onRemove={g =>
                                                 removePairs(
                                                     g.roleId,
@@ -326,9 +329,15 @@ export function RoleAssignmentsTable({
                     })}
                 </TableBody>
             </Table>
-            {canEdit && !adding && (
+            {editShown && !adding && (
                 <div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setAdding(true)}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAdding(true)}
+                        disabled={!canEdit}
+                    >
                         <Plus className="h-4 w-4" />
                         <Trans>Add role</Trans>
                     </Button>

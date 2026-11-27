@@ -13,6 +13,7 @@ import { forEachOrder, type LayoutContext, settle } from './harness/scenario.js'
  */
 
 const MAIN = 'main[data-slot="app-shell-main"]';
+const BLOCK_CARD = ':is([data-slot="card"], [data-slot="data-table"])';
 
 const DETAIL_ANCHORS: AnchorSpec[] = [
     {
@@ -24,7 +25,11 @@ const DETAIL_ANCHORS: AnchorSpec[] = [
     {
         key: 'card',
         display: 'card',
-        selector: `${MAIN} [data-slot="card"]`,
+        // The outermost cards: a loaded DataTable card has the slot `data-table`, its
+        // skeleton is a `card` around a plain `data-table`. The Platform promotion
+        // card is left out: the skeleton leaves it out, and it appears at the
+        // bottom of its column without moving the cards above.
+        selector: `${MAIN} ${BLOCK_CARD}:not(${BLOCK_CARD} *):not(:has([data-testid="platform-promotion-page-card"]))`,
         props: ['x', 'width'],
         each: 'index',
     },
