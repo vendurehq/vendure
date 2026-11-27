@@ -4,7 +4,7 @@ generated: true
 ---
 ## EntityOptions
 
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1265" packageName="@vendure/core" since="1.3.0" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1266" packageName="@vendure/core" since="1.3.0" />
 
 Options relating to the internal handling of entities.
 
@@ -19,6 +19,7 @@ interface EntityOptions {
     metadataModifiers?: EntityMetadataModifier[];
     slugStrategy?: SlugStrategy;
     timestampColumnType?: 'timestamptz' | 'timestamp';
+    transactionIsolationLevel?: TransactionIsolationLevel;
 }
 ```
 
@@ -110,6 +111,32 @@ Columns declared with an explicit string type such as `type: 'timestamp'` are no
 
 Changing this setting on an existing database needs a migration. See the
 `migrateTimestampColumnsToTimestamptz()` helper.
+### transactionIsolationLevel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/transaction-decorator#transactionisolationlevel'>TransactionIsolationLevel</a>`} default={`'READ COMMITTED' on MySQL and MariaDB, the database default otherwise`}  since="4.0.0"  />
+
+The isolation level of the transactions Vendure starts, through the [Transaction](/reference/typescript-api/request/transaction-decorator#transaction)
+decorator or [TransactionalConnection](/reference/typescript-api/data-access/transactional-connection#transactionalconnection)`.withTransaction()`, when no level is given
+explicitly.
+
+When not set, transactions on MySQL and MariaDB use `READ COMMITTED`, and on every other
+database the database's own default applies (which is `READ COMMITTED` on Postgres). With
+TypeORM v1, an `isolationLevel` set in `dbConnectionOptions` is used instead of that default.
+TypeORM 0.3 has no such option.
+
+Concurrent writes to the same Order are serialized with a row lock. Under InnoDB's own
+default of `REPEATABLE READ`, a transaction keeps reading the snapshot taken at its first
+read, so a request which waited for that lock would still read the data from before the
+request it waited for, and overwrite its changes. On MariaDB 11.6.2 and later such reads
+fail with `ER_CHECKREAD` instead. Setting `'REPEATABLE READ'` here on MySQL or MariaDB
+brings those problems back.
+
+:::note
+MySQL and MariaDB only allow `READ COMMITTED` with row-based or mixed binary logging. If the
+server uses `binlog_format=STATEMENT`, change it to `ROW` or `MIXED`.
+:::
+
+SQLite only supports `SERIALIZABLE` and `READ UNCOMMITTED`.
 
 
 </div>
