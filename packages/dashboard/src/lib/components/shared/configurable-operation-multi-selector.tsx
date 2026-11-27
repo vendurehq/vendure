@@ -6,6 +6,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { useLingui } from '@lingui/react/macro';
@@ -160,7 +161,7 @@ export function ConfigurableOperationMultiSelector({
         prevValueRef.current = value;
     }, [value, onValidityChange]);
 
-    const { data } = useQuery<QueryData>(
+    const { data, isLoading } = useQuery<QueryData>(
         queryOptions || {
             queryKey: [queryKey],
             queryFn: () => api.query(queryDocument),
@@ -221,10 +222,55 @@ export function ConfigurableOperationMultiSelector({
     };
 
     const hasOperations = value && value.length > 0;
+    const isSentence = variant !== 'form';
+    // The saved operations are known before their definitions load. Until then each sentence
+    // row shows as a skeleton in its place, so the list does not read as empty and the rows
+    // below do not move when the definitions arrive. The AND/OR pill needs no definition, so
+    // it shows as it is. A form row is a card whose size depends on the definition, so the
+    // form variant keeps no placeholder.
+    const isLoadingDefinitions = isLoading && isSentence;
 
     return (
         <div className="space-y-4">
-            {hasOperations && (
+            {hasOperations && isLoadingDefinitions && (
+                <div className="space-y-0" data-slot="operations-skeleton" aria-busy="true">
+                    <span className="sr-only">{t`Loading…`}</span>
+                    {value.map((operation, index) => {
+                        const combineWithAnd = operation.arguments.find(arg => arg.name === 'combineWithAnd');
+                        return (
+                            <div key={index + operation.code} data-slot="operation-skeleton">
+                                {index > 0 &&
+                                    (combineWithAnd ? (
+                                        <div className="my-1.5">
+                                            <CombinationModeInput
+                                                value={combineWithAnd.value ?? 'true'}
+                                                onChange={() => {}}
+                                                name={''}
+                                                ref={() => {}}
+                                                onBlur={() => {}}
+                                                position={index}
+                                                disabled
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="border-t my-1.5" />
+                                    ))}
+                                <div
+                                    className="flex h-8 items-center justify-between gap-2"
+                                    aria-hidden="true"
+                                >
+                                    <Skeleton className="h-[0.8lh] w-64 max-w-full" />
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <Skeleton className="size-6" />
+                                        <Skeleton className="size-6" />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+            {hasOperations && !isLoadingDefinitions && (
                 <div className="space-y-0">
                     {value.map((operation, index) => {
                         const operationDef = operations?.find(
@@ -236,7 +282,6 @@ export function ConfigurableOperationMultiSelector({
                         const hasCombinationMode = operation.arguments.find(
                             arg => arg.name === 'combineWithAnd',
                         );
-                        const isSentence = variant !== 'form';
                         const combinationModePill = index > 0 && hasCombinationMode && (
                             <CombinationModeInput
                                 value={

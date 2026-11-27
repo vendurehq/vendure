@@ -1,3 +1,4 @@
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { getInputComponent } from '@/vdb/framework/extension-api/input-component-extensions.js';
 import {
@@ -226,18 +227,14 @@ const facetValueSummaryDocument = graphql(`
 `);
 
 function FacetValueSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const ids = toIdArray(value);
-    const { data } = useQuery({
-        queryKey: ['FacetValueSummary', ids],
-        queryFn: () => api.query(facetValueSummaryDocument, { options: { filter: { id: { in: ids } } } }),
-        enabled: ids.length > 0,
-        placeholderData: undefined,
-    });
-    const items = data?.facetValues.items;
-    if (!items) {
-        return <EntityCountFallback count={ids.length} />;
-    }
-    return <NameList names={items.map(item => `${item.name} (${item.facet.name})`)} />;
+    return (
+        <EntityNamesSummary
+            ids={toIdArray(value)}
+            queryKey="FacetValueSummary"
+            fetch={ids => api.query(facetValueSummaryDocument, idFilter(ids))}
+            names={data => data.facetValues.items.map(item => `${item.name} (${item.facet.name})`)}
+        />
+    );
 }
 
 const productVariantSummaryDocument = graphql(`
@@ -252,18 +249,14 @@ const productVariantSummaryDocument = graphql(`
 `);
 
 function ProductVariantSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const ids = toIdArray(value);
-    const { data } = useQuery({
-        queryKey: ['ProductVariantSummary', ids],
-        queryFn: () => api.query(productVariantSummaryDocument, { options: { filter: { id: { in: ids } } } }),
-        enabled: ids.length > 0,
-        placeholderData: undefined,
-    });
-    const items = data?.productVariants.items;
-    if (!items) {
-        return <EntityCountFallback count={ids.length} />;
-    }
-    return <NameList names={items.map(item => item.name)} />;
+    return (
+        <EntityNamesSummary
+            ids={toIdArray(value)}
+            queryKey="ProductVariantSummary"
+            fetch={ids => api.query(productVariantSummaryDocument, idFilter(ids))}
+            names={data => data.productVariants.items.map(item => item.name)}
+        />
+    );
 }
 
 const productSummaryDocument = graphql(`
@@ -278,18 +271,14 @@ const productSummaryDocument = graphql(`
 `);
 
 function ProductSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const ids = toIdArray(value);
-    const { data } = useQuery({
-        queryKey: ['ProductSummary', ids],
-        queryFn: () => api.query(productSummaryDocument, { options: { filter: { id: { in: ids } } } }),
-        enabled: ids.length > 0,
-        placeholderData: undefined,
-    });
-    const items = data?.products.items;
-    if (!items) {
-        return <EntityCountFallback count={ids.length} />;
-    }
-    return <NameList names={items.map(item => item.name)} />;
+    return (
+        <EntityNamesSummary
+            ids={toIdArray(value)}
+            queryKey="ProductSummary"
+            fetch={ids => api.query(productSummaryDocument, idFilter(ids))}
+            names={data => data.products.items.map(item => item.name)}
+        />
+    );
 }
 
 function ProductMultiSummary({ value, fieldDef }: Readonly<DashboardFormComponentSummaryProps>) {
@@ -312,18 +301,14 @@ const customerGroupSummaryDocument = graphql(`
 `);
 
 function CustomerGroupSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const ids = toIdArray(value);
-    const { data } = useQuery({
-        queryKey: ['CustomerGroupSummary', ids],
-        queryFn: () => api.query(customerGroupSummaryDocument, { options: { filter: { id: { in: ids } } } }),
-        enabled: ids.length > 0,
-        placeholderData: undefined,
-    });
-    const items = data?.customerGroups.items;
-    if (!items) {
-        return <EntityCountFallback count={ids.length} />;
-    }
-    return <NameList names={items.map(item => item.name)} />;
+    return (
+        <EntityNamesSummary
+            ids={toIdArray(value)}
+            queryKey="CustomerGroupSummary"
+            fetch={ids => api.query(customerGroupSummaryDocument, idFilter(ids))}
+            names={data => data.customerGroups.items.map(item => item.name)}
+        />
+    );
 }
 
 const MAX_DISPLAYED_NAMES = 2;
@@ -345,9 +330,45 @@ function NameList({ names }: Readonly<{ names: string[] }>) {
     );
 }
 
-function EntityCountFallback({ count }: Readonly<{ count: number }>) {
+/**
+ * The names of the entities an arg holds. While they load, a skeleton holds their
+ * place, so the sentence does not show a count that then changes to the names. If
+ * they cannot load, the count shows.
+ */
+function EntityNamesSummary<TData>({
+    ids,
+    queryKey,
+    fetch,
+    names,
+}: Readonly<{
+    ids: string[];
+    queryKey: string;
+    fetch: (ids: string[]) => Promise<TData>;
+    names: (data: TData) => string[];
+}>) {
     const { t } = useLingui();
-    return <>{t`${count} selected`}</>;
+    const { data, isLoading } = useQuery({
+        queryKey: [queryKey, ids],
+        queryFn: () => fetch(ids),
+        enabled: ids.length > 0,
+        placeholderData: undefined,
+    });
+    if (data) {
+        return <NameList names={names(data)} />;
+    }
+    if (isLoading) {
+        return (
+            <span data-slot="arg-summary-skeleton">
+                <Skeleton className="inline-block h-[0.8lh] w-24 align-middle" aria-hidden="true" />
+                <span className="sr-only">{t`Loading…`}</span>
+            </span>
+        );
+    }
+    return <>{t`${ids.length} selected`}</>;
+}
+
+function idFilter(ids: string[]) {
+    return { options: { filter: { id: { in: ids } } } };
 }
 
 function toIdArray(value: any): string[] {
