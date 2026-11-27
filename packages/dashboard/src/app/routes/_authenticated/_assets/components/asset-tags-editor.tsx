@@ -96,7 +96,7 @@ export function AssetTagsEditor({
                 }}
                 inputValue={searchValue}
                 onInputValueChange={setSearchValue}
-                loading={isLoading || createTagMutation.isPending}
+                isLoading={isLoading || createTagMutation.isPending}
                 disabled={disabled}
             >
                 <ComboboxChips ref={anchor} className="w-full">
