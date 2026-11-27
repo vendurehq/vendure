@@ -1,5 +1,5 @@
 import { defineDashboardExtension, NavMenuConfig } from '@vendure/dashboard';
-import { ShieldCheck } from 'lucide-react';
+import { PackagePlus, ShieldCheck } from 'lucide-react';
 
 /**
  * Demonstrates the function form of `navSections`.
@@ -7,6 +7,9 @@ import { ShieldCheck } from 'lucide-react';
  * This moves the "Administrators" and "Roles" nav items (from the "Settings"
  * section) and "API Keys" (from the "System" section) into a new
  * "Access & Identity" section.
+ *
+ * It also adds a "New product" entry to the ⌘K command palette, listed with the
+ * Catalog pages, for administrators who can create products.
  */
 defineDashboardExtension({
     navSections: (config: NavMenuConfig): NavMenuConfig => {
@@ -37,4 +40,15 @@ defineDashboardExtension({
             ],
         };
     },
+    commandPaletteItems: [
+        {
+            id: 'new-product',
+            title: 'New product',
+            icon: PackagePlus,
+            keywords: ['create', 'add'],
+            group: 'catalog',
+            url: '/products/new',
+            requiresPermission: ['CreateProduct', 'CreateCatalog'],
+        },
+    ],
 });

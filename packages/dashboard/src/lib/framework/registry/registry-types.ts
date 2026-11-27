@@ -16,6 +16,7 @@ import { DocumentNode } from 'graphql';
 
 import { DataDisplayComponent } from '../component-registry/component-registry.js';
 import { DashboardAlertDefinition } from '../extension-api/types/alerts.js';
+import { DashboardCommandPaletteItemDefinition } from '../extension-api/types/command-palette.js';
 import { DataTableDisplayComponent } from '../extension-api/types/data-table.js';
 import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
 import { PlatformGrantedCapabilitiesStore } from '../platform-promotion/platform-granted-capabilities.js';
@@ -41,6 +42,7 @@ export interface GlobalRegistryContents {
     refundDestinations: Map<string, DashboardRefundDestinationDefinition>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
+    commandPaletteItemRegistry: Map<string, DashboardCommandPaletteItemDefinition>;
     dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
     platformGrantedCapabilities: PlatformGrantedCapabilitiesStore;
 }

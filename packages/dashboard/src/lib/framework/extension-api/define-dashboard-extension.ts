@@ -11,6 +11,7 @@ import { registerDashboardCustomProviders } from './custom-providers.js';
 import { DashboardExtension } from './extension-api-types.js';
 import {
     registerAlertExtensions,
+    registerCommandPaletteExtensions,
     registerDataTableExtensions,
     registerDetailFormExtensions,
     registerFormComponentExtensions,
@@ -90,6 +91,7 @@ export function executeDashboardExtensionCallbacks() {
  * - Custom history entries
  * - Toolbar items
  * - Refund destinations
+ * - Command palette entries
  *
  * @example
  * ```tsx
@@ -107,6 +109,7 @@ export function executeDashboardExtensionCallbacks() {
  *     historyEntries: [],
  *     toolbarItems: [],
  *     refundDestinations: [],
+ *     commandPaletteItems: [],
  * });
  * ```
  *
@@ -156,6 +159,9 @@ export function defineDashboardExtension(extension: DashboardExtension) {
 
         // Register toolbar extensions
         registerToolbarExtensions(extension.toolbarItems);
+
+        // Register command palette entries
+        registerCommandPaletteExtensions(extension.commandPaletteItems);
 
         // Execute extension source change callbacks
         const callbacks = globalRegistry.get('extensionSourceChangeCallbacks');

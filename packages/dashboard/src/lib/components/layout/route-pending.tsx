@@ -41,7 +41,7 @@ function PageSkeleton({
             </span>
             <PageHeader className="items-center" aria-hidden="true">
                 <PageHeaderContent>
-                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4.5 w-32" />
                 </PageHeaderContent>
                 <PageHeaderActions>
                     {/* As high as a button: 34px. */}
