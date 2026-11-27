@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { linkSync, readFileSync, renameSync } from 'node:fs';
+import { existsSync, linkSync, readFileSync } from 'node:fs';
 
 import {
     DeviceLoginDeniedError,
@@ -16,14 +16,14 @@ import {
 } from './auth-options.js';
 import {
     AuthStatus,
-    CompleteDeviceLoginOptions,
-    StartedDeviceLogin,
     completeDeviceLogin,
+    CompleteDeviceLoginOptions,
     readAuthStatus,
     startDeviceLogin,
+    StartedDeviceLogin,
 } from './auth-session.js';
-import { removeFile, writePrivateFile } from './auth-store.js';
-import { FileLockOptions, withFileLock } from './file-lock.js';
+import { removeFile, renameWithRetry, writePrivateFile } from './auth-store.js';
+import { errorCode, FileLockOptions, withFileLock } from './file-lock.js';
 
 /**
  * A device login that `vendure auth login --json` started, as written to
@@ -130,10 +130,10 @@ export interface WaitForPendingLoginOptions extends Omit<
 
 /**
  * Finishes the login that {@link startPendingLogin} saved. Returns the stored
- * login once the code is approved, and removes the pending login's files, or
- * the pending login again when `timeoutMs`
- * passes first, keeping it for a later wait. A wait whose login is replaced by
- * a new `auth login --json` returns the new pending login.
+ * login once the code is approved, and removes the pending login's files.
+ * Returns the pending login again when `timeoutMs` passes first, keeping it
+ * for a later wait. A wait whose login is replaced by a new
+ * `auth login --json` returns the new pending login.
  *
  * Only one wait polls at a time. Another one waits for it, up to its own
  * timeout, and then reports how that one ended.
@@ -285,7 +285,8 @@ function removeCompletedLogin(options: AuthOptions, record: PendingLoginRecord):
         try {
             finishPendingLogin(options, record, 'completed');
         } catch {
-            // Nothing more to try.
+            // The login is stored either way. A later wait that polls the
+            // spent code reports the error WorkOS returns for it.
         }
     }
 }
@@ -294,34 +295,50 @@ function removeCompletedLogin(options: AuthOptions, record: PendingLoginRecord):
  * Removes `auth-pending.json` while it holds `deviceCode`. A new login is
  * written without the wait lock, so a read followed by an unlink could remove
  * one written in between. Instead the file is renamed away, which takes one
- * version atomically, and a version that is not this login is linked back.
- * `link` never replaces a file, so an even newer login written meanwhile stays.
+ * version atomically, and a version that is not this login is put back: by
+ * `link`, which never replaces a file, so an even newer login written
+ * meanwhile stays, or by a rename where the filesystem has no hard links.
+ * Between the rename and the restore a new login is briefly absent, so the
+ * file is first read, and one that holds another login is left alone.
  * The `.tmp` name lets `writePrivateFile` sweep a copy a killed process left.
+ *
+ * @throws when the file cannot be renamed or put back, so the caller records
+ *   the outcome instead.
  */
 function removePendingRecordIf(options: AuthOptions, deviceCode: string): void {
     const file = getPendingLoginPath(options);
-    const taken = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.removing.tmp`;
-    try {
-        renameSync(file, taken);
-    } catch {
+    if (readDeviceCode(file) !== deviceCode) {
         return;
     }
+    const taken = `${file}.${process.pid}.${randomBytes(4).toString('hex')}.removing.tmp`;
     try {
-        let value: unknown;
-        try {
-            value = JSON.parse(readFileSync(taken, 'utf-8'));
-        } catch {
-            value = undefined;
+        renameWithRetry(file, taken);
+    } catch (error) {
+        if (errorCode(error) === 'ENOENT') {
+            return;
         }
-        if (parsePendingRecord(value)?.deviceCode !== deviceCode) {
-            try {
-                linkSync(taken, file);
-            } catch {
-                // A newer login took its place.
+        throw error;
+    }
+    if (readDeviceCode(taken) !== deviceCode) {
+        // A new login replaced this one between the read and the rename.
+        try {
+            linkSync(taken, file);
+        } catch (error) {
+            // EEXIST: an even newer login took its place.
+            if (errorCode(error) !== 'EEXIST' && !existsSync(file)) {
+                renameWithRetry(taken, file);
+                return;
             }
         }
-    } finally {
-        removeFile(taken);
+    }
+    removeFile(taken);
+}
+
+function readDeviceCode(file: string): string | undefined {
+    try {
+        return parsePendingRecord(JSON.parse(readFileSync(file, 'utf-8')))?.deviceCode;
+    } catch {
+        return undefined;
     }
 }
 
