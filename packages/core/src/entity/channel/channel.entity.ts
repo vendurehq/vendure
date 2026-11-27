@@ -116,6 +116,25 @@ export class Channel extends VendureEntity {
 
     @Column() pricesIncludeTax: boolean;
 
+    /**
+     * @description
+     * The code of the country whose tax rate the Channel's tax-inclusive prices include: the
+     * seller's own country. When it is set, a tax-inclusive price is split into net and tax at the
+     * country rate of this country, or at the zone rate of the default tax Zone when there is no
+     * country rate. See {@link TaxRateService}`.findIncludedTaxRate()`.
+     *
+     * It is also the tax country of prices with no shipping country, such as product pages and
+     * carts before an address is set, when the active tax Zone is the default tax Zone. See
+     * {@link defaultTaxCountryCode}.
+     *
+     * The country should be a member of the default tax Zone. When it is not set, the default tax
+     * Zone's zone rate is the included rate.
+     *
+     * @since 4.0.0
+     */
+    @Column({ type: 'varchar', nullable: true })
+    taxCountryCode: string | null;
+
     // Declared explicitly: TypeORM 1.1.1+ defaults an undeclared inverse junction FK rule to CASCADE (#5594).
     @ManyToMany(type => Product, product => product.channels, {
         onDelete: 'CASCADE',

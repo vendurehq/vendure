@@ -2,7 +2,7 @@
 title: "TaxZoneStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/tax/tax-zone-strategy.ts" sourceLine="28" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/tax/tax-zone-strategy.ts" sourceLine="32" packageName="@vendure/core" />
 
 Defines how the active [Zone](/reference/typescript-api/entities/zone#zone) is determined for the purposes of calculating taxes.
 
@@ -15,6 +15,10 @@ This strategy is used in 2 scenarios:
 
 Note that this method is called very often in a typical user session, so any work it performs should be designed with as little
 performance impact as possible.
+
+The strategy can also choose the country whose country [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate)s apply, by implementing the
+optional `determineTaxCountryCode()` method. By default this is the country of the shipping address,
+see [defaultTaxCountryCode](/reference/typescript-api/tax/default-tax-country-code#defaulttaxcountrycode).
 
 :::info
 
@@ -31,6 +35,12 @@ interface TaxZoneStrategy extends InjectableStrategy {
         channel: Channel,
         order?: Order,
     ): Zone | Promise<Zone> | undefined;
+    determineTaxCountryCode?(
+        ctx: RequestContext,
+        channel: Channel,
+        activeTaxZone: Zone,
+        order?: Order,
+    ): string | undefined | Promise<string | undefined>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -43,7 +53,48 @@ interface TaxZoneStrategy extends InjectableStrategy {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zones: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>[], channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>> | undefined`}   />
 
+Returns the active tax Zone. The zone rate of this Zone applies when no country rate does.
+### determineTaxCountryCode
 
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, activeTaxZone: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => string | undefined | Promise<string | undefined>`}  since="4.0.0"  />
+
+Returns the country code used to look up country [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate)s. A country rate for this
+country wins over the zone rate of `activeTaxZone`, which is the Zone that `determineTaxZone()`
+returned for the same calculation. Return `undefined` to apply no country rate, so that only
+the zone rate of `activeTaxZone` applies, then the 0% default.
+
+When this method is not implemented, [defaultTaxCountryCode](/reference/typescript-api/tax/default-tax-country-code#defaulttaxcountrycode) is used, which returns the
+country of the shipping address. A strategy can call that function to keep the default for
+some cases.
+
+As with `determineTaxZone()`, `order` is undefined when a price is calculated outside an
+Order, for example on a product page or in the search index. The result is recorded on the
+Order as `Order.taxCountryCode`, and when it changes, every OrderLine is taxed again.
+
+Like `determineTaxZone()`, this method is called very often, and its result is not cached.
+A strategy that does expensive work should cache it itself.
+
+*Example*
+
+```ts
+// B2B reverse charge: no VAT for business customers, the default rules for everyone else.
+export class ReverseChargeTaxZoneStrategy implements TaxZoneStrategy {
+    determineTaxZone(ctx: RequestContext, zones: Zone[], channel: Channel, order?: Order) {
+        if (isBusinessCustomer(order)) {
+            return zones.find(zone => zone.name === 'Reverse charge');
+        }
+        return channel.defaultTaxZone;
+    }
+
+    determineTaxCountryCode(ctx: RequestContext, channel: Channel, activeTaxZone: Zone, order?: Order) {
+        if (isBusinessCustomer(order)) {
+            // No country rate, so the 0% zone rate of the 'Reverse charge' Zone applies
+            return undefined;
+        }
+        return defaultTaxCountryCode(channel, activeTaxZone, order);
+    }
+}
+```
 
 
 </div>

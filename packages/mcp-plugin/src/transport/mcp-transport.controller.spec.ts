@@ -3,6 +3,7 @@ import { I18nRequest } from '@vendure/core';
 import type { Response } from 'express';
 import { describe, expect, it } from 'vitest';
 
+import { getBearerToken } from '../get-bearer-token';
 import { McpAccessTokenExpiredError } from '../oauth/oauth-error';
 
 import { McpTransportController } from './mcp-transport.controller';
@@ -40,6 +41,7 @@ function createController(authenticationError: Error) {
         oauthMetadata: {
             protectedResourceMetadataUrl: () => RESOURCE_METADATA_URL,
         },
+        options: { oauth: { tokenSecret: 'test-secret' } },
     });
     const res = {
         setHeader: (name: string, value: string) => {
@@ -82,9 +84,8 @@ describe('McpTransportController bearer authentication failures', () => {
     });
 });
 
-describe('McpTransportController bearer header parsing', () => {
-    const parse = (header?: string) =>
-        (McpTransportController.prototype as any).getBearerToken.call(undefined, header);
+describe('getBearerToken', () => {
+    const parse = (header?: string) => getBearerToken(header);
 
     it('returns undefined when there is no Authorization header', () => {
         expect(parse(undefined)).toBeUndefined();
@@ -114,8 +115,9 @@ describe('McpTransportController bearer header parsing', () => {
         expect(parse('Bearer\tabc')).toBe('abc');
     });
 
-    it('skips a run of whitespace but keeps whitespace at the end', () => {
-        expect(parse('Bearer  abc ')).toBe('abc ');
+    // Core's auth guard trims the header too, so both read the same token.
+    it('skips a run of whitespace and trims the end', () => {
+        expect(parse('Bearer  abc ')).toBe('abc');
     });
 
     it('answers immediately for a long run of whitespace and no token', () => {

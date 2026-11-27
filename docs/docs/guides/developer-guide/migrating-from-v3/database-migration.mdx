@@ -48,7 +48,7 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
 
 1. Generate the migration:
    ```bash
-   npx vendure migrate --generate v4-upgrade
+   npx vendure migrate generate v4-upgrade
    ```
    Running `npx vendure migrate` without flags opens an interactive menu with the same options.
 2. On PostgreSQL, delete the generated statements which drop and re-add the date columns. They would delete every stored date. See [Date and time columns](/developer-guide/migrating-from-v3/date-time-columns#with-migrations). With UUID ids on PostgreSQL or MariaDB 10.7+, also delete those which drop and re-add id columns. See [Id columns and foreign keys](/developer-guide/migrating-from-v3/entity-id-columns#with-migrations).
@@ -93,7 +93,7 @@ If you stop every v3 server and worker before you migrate, call both helpers fro
    ```
 4. Run the migration:
    ```bash
-   npx vendure migrate --run
+   npx vendure migrate run
    ```
 
 **Done when:** the migration command succeeds, each helper logs its result (see the helper's guide), and Vendure v4 starts.
@@ -116,7 +116,7 @@ Only the role assignment migration also runs on startup with `synchronize: true`
 
 #### If you already started v4 with `synchronize: true`
 
-The schema has then been synchronized, so `npx vendure migrate --generate` finds no changes and creates no file. Create a migration by hand which only calls the data-migration helpers, and run it with `npx vendure migrate --run`:
+The schema has then been synchronized, so `npx vendure migrate generate` finds no changes and creates no file. Create a migration by hand which only calls the data-migration helpers, and run it with `npx vendure migrate run`:
 
 ```ts
 import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -155,7 +155,7 @@ The inventory tracking and out-of-stock threshold helpers clear the v3 Global Se
 
 ### Removing the legacy tables
 
-Once no v3 server or worker is running, add a second migration file to your migrations folder by hand, and run it with `npx vendure migrate --run`:
+Once no v3 server or worker is running, add a second migration file to your migrations folder by hand, and run it with `npx vendure migrate run`:
 
 ```ts
 import { MigrationInterface, QueryRunner } from 'typeorm';

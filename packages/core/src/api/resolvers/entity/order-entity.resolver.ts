@@ -1,5 +1,6 @@
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { HistoryEntryListOptions, OrderHistoryArgs, SortOrder } from '@vendure/common/lib/generated-types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { assertFound, idsAreEqual } from '../../../common/utils';
 import { Order } from '../../../entity/order/order.entity';
@@ -7,6 +8,7 @@ import { CustomerService, TranslatorService } from '../../../service/index';
 import { HistoryService } from '../../../service/services/history.service';
 import { OrderService } from '../../../service/services/order.service';
 import { ApiType } from '../../common/get-api-type';
+import { IdArgumentDecoder } from '../../common/id-argument-decoder';
 import { RequestContext } from '../../common/request-context';
 import { Api } from '../../decorators/api.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -18,6 +20,7 @@ export class OrderEntityResolver {
         private customerService: CustomerService,
         private historyService: HistoryService,
         private translator: TranslatorService,
+        private idArgumentDecoder: IdArgumentDecoder,
     ) {}
 
     @ResolveField()
@@ -80,9 +83,10 @@ export class OrderEntityResolver {
         @Api() apiType: ApiType,
         @Parent() order: Order,
         @Args() args: OrderHistoryArgs,
+        @Info() info: GraphQLResolveInfo,
     ) {
         const publicOnly = apiType === 'shop';
-        const options: HistoryEntryListOptions = { ...args.options };
+        const options: HistoryEntryListOptions = { ...this.idArgumentDecoder.decode(info, args).options };
         if (!options.sort) {
             options.sort = { createdAt: SortOrder.ASC };
         }

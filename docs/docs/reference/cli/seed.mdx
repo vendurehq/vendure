@@ -1,0 +1,61 @@
+---
+title: "vendure seed"
+generated: true
+---
+
+
+<a name="seed"></a>
+
+## vendure seed
+
+Seed an empty database with a base-data preset, or list the presets.
+
+```bash
+vendure seed [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `seed`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--preset <preset>` | string | The preset to apply, for example uk. Without it, the presets are listed. |
+| `--country <country>` | string | The country option of the preset, as an ISO 3166-1 alpha-2 code, for example NZ. |
+| `--currency <currency>` | string | The currency option of the preset, as an ISO 4217 code, for example NZD. |
+| `--first-run`, `--no-first-run` | boolean | Apply the preset and scenario recorded in .vendure/create.json, once per database. Returns at once when the database is already seeded. |
+| `--config <config>` | string | The path to a custom Vendure config file. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `presets` (optional) | array of object | The presets, when no preset was given. |
+| `preset` (optional) | object | The preset seed. |
+| `scenario` (optional) | object | The scenario seed, with --first-run. |
+
+### Errors
+
+- `core.preset-unknown` (exit code 1)
+- `core.preset-invalid-option` (exit code 1)
+- `core.preset-database-not-empty` (exit code 1)
+- `core.scenario-invalid` (exit code 1)
+- `core.scenario-preset-mismatch` (exit code 1)
+- `core.scenario-already-seeded` (exit code 1)
+- `seed.conflicting-options` (exit code 1)
+- `seed.core-unsupported` (exit code 1)
+- `seed.config-unreadable` (exit code 1)
+- `config.resolver-failed` (exit code 1)
+- `seed.database-unreadable` (exit code 1)
+- `seed.create-record-invalid` (exit code 1)
+- `seed.failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure seed
+vendure seed --preset uk
+vendure seed --preset single-country --country NZ --currency NZD
+vendure seed --first-run --json
+```

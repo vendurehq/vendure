@@ -2,13 +2,13 @@
 title: "CountryService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/country.service.ts" sourceLine="34" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/country.service.ts" sourceLine="39" packageName="@vendure/core" />
 
 Contains methods relating to [Country](/reference/typescript-api/entities/country#country) entities.
 
 ```ts title="Signature"
 class CountryService {
-    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, translator: TranslatorService)
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, translator: TranslatorService, taxRateService: TaxRateService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<Country>, relations: RelationPaths<Country> = []) => Promise<PaginatedList<Translated<Country>>>;
     findOne(ctx: RequestContext, countryId: ID, relations: RelationPaths<Country> = []) => Promise<Translated<Country> | undefined>;
     findAllAvailable(ctx: RequestContext) => Promise<Array<Translated<Country>>>;
@@ -50,7 +50,8 @@ Returns a Country based on its ISO country code.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateCountryInput) => Promise<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>`}   />
 
-
+Updates a Country. When its code changes, every Channel that uses the old code as its
+`taxCountryCode` is updated to the new one.
 ### delete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />

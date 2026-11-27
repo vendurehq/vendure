@@ -236,12 +236,23 @@ await this.orderService.addItemToOrder(cart.ctx, cart.order.id, input.variantId,
 ## Optional: Require confirmation on a destructive tool
 
 Use `behavior: 'destructive'` for tools that delete, cancel, refund, or otherwise make an irreversible or
-difficult-to-reverse change. The registry then does the confirmation handshake for you:
+difficult-to-reverse change. The registry then asks the caller for consent for you:
 
-- It advertises an optional `confirm: boolean` parameter on the tool's schema.
-- Without `confirm: true`, it returns a non-error approval request with the tool's name and description, never
-  its arguments; your `execute` is not run.
-- On `confirm: true`, it strips `confirm` and runs your `execute`.
+- It advertises an optional string `confirm` parameter on the tool's schema.
+- Without a matching `confirm`, it does not run your `execute`. It returns a non-error `incomplete` result with a
+  `preview` of the action and a `consent` need that carries a `digest`.
+- When the caller sends the same arguments with `confirm` set to that digest, it strips `confirm` and runs your
+  `execute`.
+
+The digest is an HMAC under a key the caller never sees: it is derived from `oauth.tokenSecret`, or made at random
+when the server starts without OAuth. It is bound to the caller, the arguments and the preview, and it expires after
+ten minutes. So a caller cannot run the tool without seeing the preview, and
+a consent never applies to a target that changed after the preview was shown.
+
+Add a `describe` method to write the preview. It receives the same context and input as `execute`, must not change
+any data, and returns a short plain-text summary that names the resolved target. Throw a caller-safe error, such
+as `UserInputError`, when the target does not exist. Without `describe`, the preview is the tool's description
+followed by the input as JSON.
 
 :::warning
 Do not add `confirm` to your schema or read it in `execute`. The registry adds and handles it automatically, and
@@ -270,7 +281,19 @@ transformed to a string or an array is rejected at call time.
 })
 @Injectable()
 export class ArchiveProductTool implements McpToolHandler<{ id: string }> {
-    // ...
+    constructor(private readonly productService: ProductService) {}
+
+    async describe(ctx: RequestContext, input: { id: string }) {
+        const product = await this.productService.findOne(ctx, input.id);
+        if (!product) {
+            throw new UserInputError(`No product with id ${input.id}`);
+        }
+        return `Archive product ${product.name} (id ${product.id}).`;
+    }
+
+    async execute(ctx: RequestContext, input: { id: string }) {
+        // ...
+    }
 }
 ```
 

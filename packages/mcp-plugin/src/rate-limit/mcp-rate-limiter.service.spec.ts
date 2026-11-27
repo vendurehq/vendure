@@ -476,3 +476,72 @@ describe('McpRateLimiterService shared buckets across instances with skewed cloc
         expect(exceeded?.message).toContain('Retry after 60 seconds');
     });
 });
+
+/** A local-trust caller: the superadmin, with the dummy session every in-memory context carries. */
+function localCtx(userId = '1') {
+    return {
+        ctx: { session: { token: '__dummy_session_token__' }, activeUserId: userId },
+        clientIp: '127.0.0.1',
+        localTrust: true,
+    } as any;
+}
+
+describe('McpRateLimiterService local-trust buckets', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('limits a local-trust caller with the same per-session limit as any other caller', async () => {
+        const { service } = build({ rateLimits: { perSession: { rpm: 2 }, perUser: { rpm: 0 } } });
+        const input = { executionContext: localCtx(), endpoint: 'admin' as const, subject: 'list_orders' };
+        expect(await service.checkRateLimit(input)).toBeUndefined();
+        expect(await service.checkRateLimit(input)).toBeUndefined();
+        expect(await service.checkRateLimit(input)).toMatchObject({ scope: 'session' });
+    });
+
+    // The local agent acts as the superadmin, so sharing the user bucket would let it starve that
+    // administrator's own OAuth clients, and the other way round.
+    it('keeps the local agent and an OAuth caller acting as the same user in separate buckets', async () => {
+        const { service } = build({ rateLimits: { perSession: { rpm: 0 }, perUser: { rpm: 1 } } });
+        const local = { executionContext: localCtx('1'), endpoint: 'admin' as const, subject: 'list_orders' };
+        const oauth = {
+            executionContext: oauthCtx('grant-session', '1', 'client-a'),
+            endpoint: 'admin' as const,
+            subject: 'list_orders',
+        };
+        expect(await service.checkRateLimit(local)).toBeUndefined();
+        expect(await service.checkRateLimit(local)).toMatchObject({ scope: 'user' });
+        expect(await service.checkRateLimit(oauth)).toBeUndefined();
+    });
+
+    it('keeps the local agent out of the bucket of in-process callers with the same dummy session', async () => {
+        const { service } = build({ rateLimits: { perSession: { rpm: 1 }, perUser: { rpm: 0 } } });
+        const local = { executionContext: localCtx(), endpoint: 'admin' as const, subject: 'list_orders' };
+        const inProcess = {
+            executionContext: { ctx: { session: { token: '__dummy_session_token__' }, activeUserId: '1' } } as any,
+            endpoint: 'admin' as const,
+            subject: 'list_orders',
+        };
+        expect(await service.checkRateLimit(local)).toBeUndefined();
+        expect(await service.checkRateLimit(inProcess)).toBeUndefined();
+    });
+
+    it('gives the local agent its own per-tool bucket', async () => {
+        const { service } = build({
+            rateLimits: { perSession: { rpm: 0 }, perUser: { rpm: 0 }, perTool: { refund_order: { rpm: 1 } } },
+        });
+        const local = { executionContext: localCtx(), endpoint: 'admin' as const, subject: 'refund_order' };
+        const oauth = {
+            executionContext: oauthCtx('grant-session', '1', 'client-a'),
+            endpoint: 'admin' as const,
+            subject: 'refund_order',
+        };
+        expect(await service.checkRateLimit(local)).toBeUndefined();
+        expect(await service.checkRateLimit(local)).toMatchObject({ scope: 'tool:refund_order' });
+        expect(await service.checkRateLimit(oauth)).toBeUndefined();
+    });
+});

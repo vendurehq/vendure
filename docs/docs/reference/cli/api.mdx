@@ -1,0 +1,53 @@
+---
+title: "vendure api"
+generated: true
+---
+
+
+<a name="api"></a>
+
+## vendure api
+
+Run a GraphQL operation on the local dev server: on the Admin API as the superadmin, or on the Shop API anonymously, each call a new session.
+
+```bash
+vendure api [target] [query] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `api`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[target]`, `--target <target>` | `"admin"` or `"shop"` | Required. admin: the Admin API, as the superadmin. shop: the Shop API, anonymously, like a storefront. |
+| `[query]`, `--query <query>` | string | Required. The GraphQL document. |
+| `--variables <variables>` | string | The variables of the operation, as a JSON object. |
+| `--operation-name <operation-name>` | string | Which operation to run, when the document holds more than one. |
+| `--channel-token <channel-token>` | string | The token of the channel to run it in, sent as the vendure-token header (default: the default channel). |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `data` (optional) | object or null |  |
+| `errors` (optional) | array of object |  |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+- `api.invalid-variables` (exit code 2)
+- `devserver.not-running` (exit code 1)
+- `devserver.not-ready` (exit code 1)
+- `devserver.endpoint-unknown` (exit code 1)
+- `devserver.endpoint-not-local` (exit code 1)
+- `devserver.unreachable` (exit code 1)
+
+### Examples
+
+```bash
+vendure api admin '{ products(options: { take: 5 }) { items { id name } } }'
+vendure api shop 'query ($id: ID!) { product(id: $id) { name } }' --variables '{"id":"1"}' --json
+```

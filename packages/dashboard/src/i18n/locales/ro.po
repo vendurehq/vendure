@@ -321,6 +321,7 @@ msgstr "Vânzători"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-option-list.tsx
 msgid "Options"
 msgstr "Opțiuni"
 
@@ -407,6 +408,11 @@ msgstr "Ești sigur că vrei să ștergi această variantă?"
 msgid "{0, plural, one {Moving # collection into the selected collection} other {Moving # collections into the selected collection}}"
 msgstr "{0, plural, one {Se mută # colecție în colecția selectată} few {Se mută # colecții în colecția selectată} other {Se mută # de colecții în colecția selectată}}"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Dismiss"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
 #: src/lib/components/layout/command-palette.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
@@ -479,6 +485,10 @@ msgstr "Câmpuri personalizate modificate"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx
 msgid "Successfully created stock location"
 msgstr "Locația de stoc a fost creată cu succes"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Hide for now"
+msgstr ""
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets to add"
@@ -597,6 +607,10 @@ msgstr "Grup client nou"
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Create \"{0}\""
 msgstr "Creează \"{0}\""
+
+#: src/lib/components/data-table/data-table.tsx
+msgid "{count} filters"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Could not load orders"
@@ -948,6 +962,10 @@ msgstr ""
 msgid "Please add products and complete the shipping address to run the test."
 msgstr "Te rugăm să adaugi produse și să completezi adresa de livrare pentru a rula testul."
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copy for agent"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Toggle header row"
 msgstr "Comută rândul antet"
@@ -1132,6 +1150,10 @@ msgstr "Introdu ID-ul tranzacției pentru această soluționare rambursare"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Ești sigur că vrei să ștergi această comandă ciornă?"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Store setup"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Fulfillment created"
@@ -1540,6 +1562,10 @@ msgstr "Descarcă ca fișier .env"
 msgid "When enabled, a promotion is available in the shop"
 msgstr "Când este activat, o promoție este disponibilă în magazin"
 
+#: src/lib/components/data-table/data-table.tsx
+msgid "Remove {label} filter"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "Go to the pages of all selected jobs first"
 msgstr ""
@@ -1731,6 +1757,10 @@ msgstr ", {0} selectate"
 #~ msgid "Scale"
 #~ msgstr ""
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply promotions"
+msgstr ""
+
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
 msgstr "Nu s-au găsit țări"
@@ -1898,6 +1928,11 @@ msgstr "Status comandă schimbat"
 msgid "is before"
 msgstr "este înainte"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+msgid "Tax country"
+msgstr ""
+
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "This option combination is already used by \"{0}\""
@@ -1933,6 +1968,10 @@ msgstr "{0, plural, one {Încărcarea a # resursă a eșuat} few {Încărcarea a
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "We couldn't load these metrics"
 msgstr "Nu s-au putut încărca aceste metrici"
+
+#: src/lib/framework/dashboard-widget/orders-summary/index.tsx
+msgid "We couldn't load the orders summary"
+msgstr ""
 
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
@@ -2134,6 +2173,10 @@ msgstr "Limită de utilizare"
 msgid "Create your first collection"
 msgstr "Creează prima ta colecție"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Select a zone or a country"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Loading global settings..."
 msgstr "Se încarcă setările globale..."
@@ -2290,6 +2333,10 @@ msgstr "Categorie de taxă nouă"
 #~ msgid "Partial refund completed"
 #~ msgstr "Rambursare parțială finalizată"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts for the modified order"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Column options"
 msgstr ""
@@ -2436,6 +2483,11 @@ msgstr "Ultimele 30 de zile"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
 msgstr "Fără valori atribut"
+
+#: src/app/routes/_authenticated/_channels/components/tax-country-select.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "None"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
@@ -3239,6 +3291,8 @@ msgstr "Caută atribute"
 #~ msgstr ""
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Zone"
 msgstr "Zonă"
@@ -3283,6 +3337,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
+#: src/lib/components/data-table/data-table.tsx
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx
 msgid "{0} selected"
 msgstr "{0} selectate"
@@ -3592,6 +3647,7 @@ msgid "Available in {channelName}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
 msgid "Discount"
 msgstr "Reducere"
 
@@ -4036,8 +4092,6 @@ msgstr "Selectează valoarea"
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
-#: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 #: src/lib/components/data-input/product-multi-selector-input.tsx
@@ -4210,8 +4264,12 @@ msgstr "Nu s-a putut crea categoria de taxă"
 #~ msgstr "Setează criteriile de filtrare pentru coloana {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 #: src/lib/components/shared/customer-address-form.tsx
 msgid "Country"
 msgstr "Țară"
@@ -4277,7 +4335,7 @@ msgstr "Linkurile de resetare a parolei sunt valabile doar pentru o perioadă li
 msgid "Authentication methods"
 msgstr "Metode de autentificare"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "start"
 msgstr "început"
 
@@ -4296,6 +4354,10 @@ msgstr "Caută roluri..."
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Checking the store setup…"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
@@ -4356,6 +4418,10 @@ msgstr ""
 msgid "Assign"
 msgstr "Atribuie"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This server cannot check the store setup."
+msgstr ""
+
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully created seller"
 msgstr "Vânzătorul a fost creat cu succes"
@@ -4386,6 +4452,10 @@ msgstr "Încearcă din nou"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
 msgstr "Metoda de livrare a fost actualizată cu succes"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-applying the promotions to the modified order would change its discounts. Choose which discounts the order should have."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Row options"
@@ -4527,6 +4597,7 @@ msgid "The display name can omit the extension or keep {sourceExtensionLabel}. I
 msgstr ""
 
 #: src/lib/components/shared/address-country-select.tsx
+#: src/lib/components/shared/country-id-selector.tsx
 msgid "Select a country"
 msgstr "Selectează o țară"
 
@@ -4568,7 +4639,7 @@ msgstr "Identificator URL"
 msgid "Set Focal Point"
 msgstr "Setează punctul focal"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx
+#: src/lib/components/data-table/data-table-filter-chip-label.tsx
 msgid "end"
 msgstr "sfârșit"
 
@@ -4735,6 +4806,10 @@ msgstr "Parolele nu se potrivesc"
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Pick a date and time"
 msgstr "Alege data și ora"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep the discounts the order was paid with"
+msgstr ""
 
 #: src/lib/components/shared/form-error-summary.tsx
 msgid "This field is invalid"
@@ -5038,6 +5113,10 @@ msgstr "Produse"
 msgid "Address created"
 msgstr "Adresă creată"
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel can take orders. These items are worth a look."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
 msgstr "Cheia API a fost rotită cu succes"
@@ -5071,6 +5150,10 @@ msgstr "Articole incluse în această livrare."
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Failed to cancel payment"
 msgstr "Nu s-a putut anula plata"
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "No setup gaps found."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Payment cancelled successfully"
@@ -5540,6 +5623,10 @@ msgstr "Expediată"
 msgid "This cannot be saved until the following are fixed:"
 msgstr ""
 
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "Fix these before this channel can take orders."
+msgstr ""
+
 #: src/lib/framework/layout-engine/page-layout.tsx
 #~ msgid "Entity Information"
 #~ msgstr "Informații entitate"
@@ -5616,6 +5703,10 @@ msgstr "Dacă este activat, filtrele vor fi moștenite de la colecția părinte 
 #: src/lib/components/shared/zone-selector.tsx
 msgid "Select a zone"
 msgstr "Selectează o zonă"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
+msgid "Applies to"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-sheet.tsx
 msgid "Test shipping methods"
@@ -5731,6 +5822,10 @@ msgstr "Este necesară o rambursare de {formattedDiff}. Selectează sumele de pl
 
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "File exceeds the server upload size limit"
+msgstr ""
+
+#: src/app/routes/_authenticated/components/setup-checklist.tsx
+msgid "This channel is ready to take orders."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -5905,7 +6000,12 @@ msgstr "Acțiuni în masă"
 msgid "New seller"
 msgstr "Vânzător nou"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/lib/components/data-input/relation-selector.tsx
+#: src/lib/components/layout/generated-breadcrumbs.tsx
+#: src/lib/components/layout/route-pending.tsx
+#: src/lib/components/layout/route-pending.tsx
 #: src/lib/components/ui/state-views.tsx
 msgid "Loading…"
 msgstr "Se încarcă…"
@@ -6135,6 +6235,10 @@ msgstr "Metodă de Livrare Nouă"
 msgid "Delete stock locations"
 msgstr "Șterge locațiile de stoc"
 
+#: src/lib/components/layout/nav-user.tsx
+msgid "Setup"
+msgstr ""
+
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
 msgstr "este mai mare sau egal cu"
@@ -6251,7 +6355,6 @@ msgstr ""
 #~ msgstr "Aceeași fereastră"
 
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
-#: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "Remove filter"
 msgstr ""
 
@@ -6654,10 +6757,18 @@ msgstr "Nume variantă"
 msgid "Remove"
 msgstr "Elimină"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Discounts would change"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Failed to update customer"
 msgstr "Nu s-a putut actualiza clientul"
+
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Copied the error for your agent"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Draw from"
@@ -6914,7 +7025,6 @@ msgstr ""
 msgid "Successfully updated administrator"
 msgstr "Administratorul a fost actualizat cu succes"
 
-#: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -6981,6 +7091,10 @@ msgstr "Binar"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
 msgstr "Grupul de opțiuni a fost actualizat cu succes"
+
+#: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
+msgid "The discounts the order was paid with were kept"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -7409,6 +7523,10 @@ msgstr "Limbi globale"
 msgid "New administrator"
 msgstr "Administrator nou"
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Re-apply the promotions to the modified order"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Delete draft"
 msgstr "Șterge ciorna"
@@ -7778,6 +7896,10 @@ msgstr "mai mare sau egal"
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Setează nivelul stocului la care această variantă este considerată a fi în afara stocului. Folosirea unei valori negative activează suportul pentru comenzi în așteptare."
 
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Keep original discounts"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-upload-modal.tsx
 msgid "Upload cancelled"
 msgstr ""
@@ -7831,6 +7953,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx
 msgid "Customer added to group"
 msgstr "Client adăugat la grup"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx
+msgid "The country whose tax rate the entered prices include, normally your own. When it is set, prices that include tax are split into net and tax at this country's rate. It should be in the default tax zone."
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.$id.tsx
 msgid "Seller orders"
@@ -7950,6 +8076,10 @@ msgstr "Baza de taxare"
 msgid "Load more"
 msgstr "Încarcă mai multe"
 
+#: src/lib/graphql/copy-for-agent.ts
+msgid "Could not copy. The error is in the browser console."
+msgstr ""
+
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #~ msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 #~ msgstr ""
@@ -7961,6 +8091,10 @@ msgstr "Rambursare soluționată"
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 #~ msgid "API Key"
 #~ msgstr "Cheie API"
+
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
+msgid "Target"
+msgstr ""
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -7988,8 +8122,8 @@ msgid "Available Conditions"
 msgstr "Condiții disponibile"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
-msgid "Active filters"
-msgstr "Filtre active"
+#~ msgid "Active filters"
+#~ msgstr "Filtre active"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -8014,6 +8148,10 @@ msgstr "Închide"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx
 msgid "Link"
 msgstr "Link"
+
+#: src/app/routes/_authenticated/_orders/components/promotion-freeze-choice.tsx
+msgid "Order total"
+msgstr ""
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order..."

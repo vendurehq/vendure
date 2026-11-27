@@ -30,7 +30,7 @@ export interface TaxCategorySelectorProps {
 }
 
 export function TaxCategorySelector({ value, onChange }: Readonly<TaxCategorySelectorProps>) {
-    const { data, isLoading, isPending, status } = useQuery({
+    const { data, isPending } = useQuery({
         queryKey: ['taxCategories'],
         queryFn: () =>
             api.query(taxCategoriesDocument, {
@@ -39,8 +39,8 @@ export function TaxCategorySelector({ value, onChange }: Readonly<TaxCategorySel
                 },
             }),
     });
-    if (isLoading || isPending) {
-        return <Skeleton className="h-10 w-full" />;
+    if (isPending) {
+        return <Skeleton className="h-8.5 w-full" aria-hidden="true" />;
     }
 
     return (

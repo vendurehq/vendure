@@ -36,6 +36,8 @@ function transformChannelAvailabilityFilter<V>(variables: V): V {
     return { ...variables, options: { ...options, filter: { ...options.filter, _and } } };
 }
 
+const STATUS_COLUMN_WIDTH = '9rem';
+
 /**
  * @description
  * Returns what a Product or ProductVariant `ListPage` needs to show whether each row is available
@@ -47,8 +49,8 @@ function transformChannelAvailabilityFilter<V>(variables: V): V {
  *   hidden column registered under `filterId` (`additionalColumns[filterId] = filterColumn`) and
  *   `transformVariables`, which turns it into a filter on `enabled` and `enabledInChannel`.
  *
- * With a single Channel, `statusColumn` is empty and `facetedFilter` is `undefined`, so the list
- * keeps its Enabled column.
+ * With a single Channel, `statusColumn` only sets the column's width and `facetedFilter` is
+ * `undefined`, so the list keeps its Enabled column.
  *
  * @example
  * ```tsx
@@ -79,10 +81,13 @@ export function useChannelAvailabilityList(): {
     const { t } = useLingui();
     const { channels } = useChannel();
     const multiChannel = channels.length > 1;
+    // The width holds the column still while the list loads (the widest badge fits).
     const statusColumn: ColumnDefWithMetaDependencies<any> = multiChannel
         ? {
               header: () => <Trans>Status</Trans>,
-              meta: { dependencies: ['enabledInChannel'] },
+              meta: { dependencies: ['enabledInChannel'], width: STATUS_COLUMN_WIDTH },
+              // The Status filter covers `enabled`, so a second filter of the same name is left out.
+              enableColumnFilter: false,
               cell: ({ row }) => (
                   <ChannelAvailabilityBadge
                       enabled={row.original.enabled}
@@ -90,14 +95,18 @@ export function useChannelAvailabilityList(): {
                   />
               ),
           }
-        : {};
+        : { meta: { width: STATUS_COLUMN_WIDTH } };
     // Hidden by default: the Status column already covers it. Table settings saved before the field
     // existed show it, so it can be hidden. It follows the Status rule: "Yes" is the normal state and
     // shows only on row hover, "No" always shows.
     const enabledInChannelColumn: ColumnDefWithMetaDependencies<any> = {
         header: () => <Trans>In channel</Trans>,
         cell: ({ row }) => (
-            <BooleanDisplayBadge value={row.original.enabledInChannel} labelTrue={t`Yes`} labelFalse={t`No`} />
+            <BooleanDisplayBadge
+                value={row.original.enabledInChannel}
+                labelTrue={t`Yes`}
+                labelFalse={t`No`}
+            />
         ),
         enableColumnFilter: false,
     };

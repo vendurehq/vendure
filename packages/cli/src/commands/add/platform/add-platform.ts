@@ -2,9 +2,10 @@ import { cancel, confirm, isCancel, log } from '@clack/prompts';
 import spawn from 'cross-spawn';
 import pc from 'picocolors';
 
+import { authEnvironment } from '../../../auth/startup-environment.js';
 import { exitCliCommand } from '../../../shared/cli-command-exit.js';
 import { abortIfNonInteractive } from '../../../utilities/utils.js';
-import { openConsoleBrowser } from '../../console/authentication.js';
+import { openConsoleBrowser } from '../../console/open-browser.js';
 import {
     consoleOriginsForManifest,
     readProjectLinkManifest,
@@ -54,7 +55,8 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     stopUnlessSucceeded(
         await deps.run(process.execPath, [process.argv[1], 'console', 'link'], {
             cwd: deps.cwd,
-            env: process.env,
+            // The auth variables as the CLI started with them, so the child records the same ones.
+            env: authEnvironment(),
         }),
         `Your project is unchanged. ${RETRY_HINT}`,
     );
@@ -63,11 +65,11 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     const projectRoot = resolveProjectRoot(deps.cwd);
     const manifest = readProjectLinkManifest(projectRoot);
     if (manifest.kind !== 'valid') {
-        // `vendure console link` exits with 0 when the user keeps an invalid manifest.
+        // A manifest that cannot be read stays until someone gives the consent to replace it.
         const reason = manifest.kind === 'invalid' ? ` ${manifest.reason}` : '';
         cancel(
             `Platform setup stopped. The Project Link Manifest at ${manifest.path} is not valid.${reason} ` +
-                `Run "vendure console link --force" to replace it, then run "vendure add" again.`,
+                `Run "vendure console unlink" to remove it, then run "vendure add" again.`,
         );
         exitCliCommand(0);
     }
@@ -91,7 +93,7 @@ export async function addPlatform(dependencies: Partial<PlatformTrialDependencie
     // to staging installs from staging.
     log.step('Step 3 of 3: Install the Vendure Platform packages');
     const env = {
-        ...process.env,
+        ...authEnvironment(),
         VENDURE_CONSOLE_APP_URL: origins.appOrigin,
         VENDURE_CONSOLE_API_URL: origins.apiOrigin,
     };

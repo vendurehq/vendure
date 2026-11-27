@@ -13,7 +13,7 @@ import {
 import { CliCommandExit } from './cli-command-exit.js';
 import { buildOptionFlags, parseOptionFlags } from './cli-command-options.js';
 import { CliPluginExtensionAccessor } from './cli-plugin-extension.js';
-import { CommandTreeEntry, RootOptionEntry } from './command-registry-store.js';
+import { RootOptionEntry } from './command-registry-store.js';
 import { findVendureProjectRoot, vendureProjectRequiredMessage } from './project-validation.js';
 
 /**
@@ -48,7 +48,7 @@ export interface RegisterCommandsOptions {
  * The package name is used unchanged rather than a prettier display name, so
  * the heading names the exact thing to install, enable or remove.
  */
-function pluginCommandsHeading(packageName: string): string {
+export function pluginCommandsHeading(packageName: string): string {
     return `Commands from ${packageName}:`;
 }
 
@@ -92,7 +92,7 @@ export type HeadingColors = Pick<typeof pc, 'bold' | 'cyan'>;
 
 export function registerCommands(
     program: Command,
-    tree: CommandTreeEntry[],
+    tree: CliCommandNode[],
     options: RegisterCommandsOptions = {},
 ): void {
     const {
@@ -102,23 +102,16 @@ export function registerCommands(
     } = options;
     const getProjectRoot = resolveProjectRootOnce(findProjectRoot);
     const sharedOptions = declareOptions(program, rootOptions);
-    for (const { node, source } of tree) {
-        const command = registerNode(program, node, [], sharedOptions, getPluginExtensions, {
+    for (const node of tree) {
+        registerNode(program, node, [], sharedOptions, getPluginExtensions, {
             getProjectRoot,
             requiresProject: false,
         });
-        if (source) {
-            // Commander groups by the heading text itself, so every command
-            // from one package lands in one section without further
-            // bookkeeping. Commands left ungrouped keep Commander's own
-            // "Commands:" heading, which is where the built-ins stay.
-            command.helpGroup(pluginCommandsHeading(source));
-        }
     }
     addProjectLegend(program, {
         // The program has no description of its own in the command list.
         ownDescriptionMarked: false,
-        subcommands: tree.map(entry => entry.node),
+        subcommands: tree,
         subcommandsInherit: false,
         getProjectRoot,
     });
@@ -414,6 +407,9 @@ function declareOption(
 function addOption(command: Command, option: CliCommandOption, helpGroup?: string): void {
     const created = command.createOption(buildOptionFlags(option), option.description);
     created.default(option.defaultValue);
+    if (option.hidden) {
+        created.hideHelp();
+    }
     if (helpGroup !== undefined) {
         created.helpGroup(helpGroup);
     }

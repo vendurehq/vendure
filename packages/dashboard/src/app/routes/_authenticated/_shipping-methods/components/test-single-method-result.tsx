@@ -6,6 +6,7 @@ import { testShippingMethodDocument } from '../shipping-methods.graphql.js';
 import { MetadataBadges } from './metadata-badges.js';
 import { PriceDisplay } from './price-display.js';
 import { ShippingMethodTestResultWrapper } from './shipping-method-test-result-wrapper.js';
+import { ShippingOptionList } from './shipping-option-list.js';
 
 export type TestShippingMethodResult = ResultOf<typeof testShippingMethodDocument>['testShippingMethod'];
 
@@ -67,6 +68,7 @@ export function TestSingleMethodResult({
                                     <div className="flex-1">
                                         <MetadataBadges metadata={testResult.quote.metadata} />
                                     </div>
+                                    <ShippingOptionList options={testResult.options} currencyCode={currencyCode} />
                                 </div>
                             )}
                         </div>

@@ -174,6 +174,14 @@ export class FulfillmentHandler<T extends ConfigArgs = ConfigArgs> extends Confi
 
     /**
      * @internal
+     * Whether an `onFulfillmentTransition` hook is configured.
+     */
+    get hasOnFulfillmentTransition(): boolean {
+        return typeof this.onFulfillmentTransitionFn === 'function';
+    }
+
+    /**
+     * @internal
      */
     onFulfillmentTransition(
         fromState: FulfillmentState,

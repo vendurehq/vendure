@@ -245,6 +245,7 @@ function ModifyOrderPage() {
                             eligibleShippingMethods?.eligibleShippingMethodsForDraftOrder?.map(m => ({
                                 id: m.id,
                                 name: m.name,
+                                options: m.options,
                             })) ?? []
                         }
                         onNoteChange={setNote}

@@ -6,7 +6,8 @@ type TaxRate implements Node {
     enabled: Boolean!
     value: Float!
     category: TaxCategory!
-    zone: Zone!
+    zone: Zone
+    region: Region
     customerGroup: CustomerGroup
 }
 

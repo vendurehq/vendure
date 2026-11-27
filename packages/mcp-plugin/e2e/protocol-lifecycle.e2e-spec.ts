@@ -10,6 +10,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import {
+    consentDigestOf,
     expectRateLimitRefusal,
     initializeParams,
     MCP_ACCEPT,
@@ -17,6 +18,7 @@ import {
     postMcp,
     postModernMcp,
     rpc,
+    withConsent,
 } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { testServerInit } from './utils/test-server';
@@ -307,7 +309,7 @@ describe('MCP discovery mode', () => {
         expect(res.body.result.content[0].text).toMatch(/Invalid arguments for tool "shop_echo"/);
     });
 
-    it('execute_tool gates a destructive tool, then runs it with confirm:true (wire schema accepts confirm)', async () => {
+    it('execute_tool gates a destructive tool, then runs it with the digest (wire schema accepts confirm)', async () => {
         const preview = await postMcp(
             baseUrl(),
             'shop',
@@ -318,23 +320,23 @@ describe('MCP discovery mode', () => {
             ),
         );
         expect(preview.body.result.isError).toBeUndefined();
-        expect(preview.body.result.structuredContent).toMatchObject({
-            status: 'confirmation_required',
-            confirmed: false,
-        });
+        expect(preview.body.result.structuredContent).toMatchObject({ status: 'incomplete' });
 
         // `confirm` exists only on the wire schema, so execute_tool must validate against that
         // schema (the tool's own schema would reject the unknown `confirm`) and then strip it.
         const confirmed = await postMcp(
             baseUrl(),
             'shop',
-            rpc(
-                'tools/call',
-                {
-                    name: 'execute_tool',
-                    arguments: { name: 'shop_delete', arguments: { id: 'abc', confirm: true } },
-                },
-                6,
+            withConsent(
+                rpc(
+                    'tools/call',
+                    {
+                        name: 'execute_tool',
+                        arguments: { name: 'shop_delete', arguments: { id: 'abc' } },
+                    },
+                    6,
+                ),
+                consentDigestOf(preview) ?? '',
             ),
         );
         // This mutation does not use the active order, so it creates no anonymous session.

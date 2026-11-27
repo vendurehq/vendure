@@ -9,6 +9,7 @@ import { validateTransitionDefinition } from '../../../common/finite-state-machi
 import { awaitPromiseOrObservable } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Order } from '../../../entity/order/order.entity';
 import { Payment } from '../../../entity/payment/payment.entity';
 
@@ -19,7 +20,10 @@ export class PaymentStateMachine {
     private readonly config: StateMachineConfig<PaymentState, PaymentTransitionData>;
     private readonly initialState: PaymentState = 'Created';
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private connection: TransactionalConnection,
+    ) {
         this.config = this.initConfig();
     }
 
@@ -75,6 +79,11 @@ export class PaymentStateMachine {
                 }
                 for (const handler of paymentMethodHandlers) {
                     if (data.payment.method === handler.code) {
+                        if (handler.hasOnStateTransitionStart) {
+                            // The hook may capture or void with the provider, which a retry of the
+                            // transaction would do again.
+                            this.connection.preventTransactionRetry(data.ctx);
+                        }
                         const result = await awaitPromiseOrObservable(
                             handler.onStateTransitionStart(fromState, toState, data),
                         );

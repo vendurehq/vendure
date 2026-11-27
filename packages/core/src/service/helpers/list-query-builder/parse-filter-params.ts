@@ -145,7 +145,7 @@ export function parseFilterParams<T extends VendureEntity>(
             } else if (customPropertyMap?.[key]) {
                 fieldName = customPropertyMap[key];
             } else {
-                throw new UserInputError('error.invalid-filter-field');
+                throw new UserInputError('error.invalid-filter-field', { fieldName: key });
             }
             const condition = buildWhereCondition(fieldName, operator as Operator, operand, argIndex, dbType);
 

@@ -14,6 +14,7 @@ import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { ColumnFiltersState, ColumnSort, SortingState, Table } from '@tanstack/react-table';
 import { ColumnDef, Row, TableOptions, VisibilityState } from '@tanstack/table-core';
+import type { DataTableColumnMeta } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
@@ -115,7 +116,26 @@ export type ColumnDefWithMetaDependencies<T extends TypedDocumentNode<any, any>>
          *
          * @default 'start'
          */
-        align?: 'start' | 'end';
+        align?: DataTableColumnMeta['align'];
+        /**
+         * @description
+         * The column's width: a number in px or a CSS length (`'8rem'`). The column
+         * keeps it while the list loads, when it is empty and with rows, so the
+         * headers do not move. Give one to each column whose content has a known
+         * width, and leave the widest text column without, so it takes the rest
+         * of the row.
+         *
+         * @since 4.0.0
+         */
+        width?: DataTableColumnMeta['width'];
+        /**
+         * @description
+         * The narrowest the column gets, for the column without a `width`. It
+         * holds in every state, like `width`.
+         *
+         * @since 4.0.0
+         */
+        minWidth?: DataTableColumnMeta['minWidth'];
     };
 };
 
@@ -253,6 +273,31 @@ export interface PaginatedListDataTableProps<
      * @since 4.0.0
      */
     selectionStorageKey?: string;
+    /**
+     * @description
+     * Remembers the list's total item count for the next first load, so it draws as
+     * many skeleton rows as the page will have. Filtered and searched loads do not
+     * use it. See the `rowCountKey` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    rowCountKey?: string;
+    /**
+     * @description
+     * Loading cells by column id, for cells taller than one text line. See the
+     * `skeletonCells` prop of {@link DataTable}.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * The rows open a detail page. See the `rowLinks` prop of {@link DataTable}.
+     *
+     * @default false
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -485,6 +530,9 @@ export function PaginatedListDataTable<
     selectedItems,
     onSelectionChange,
     selectionStorageKey,
+    rowCountKey,
+    skeletonCells,
+    rowLinks,
     disableViewOptions,
     enableViews,
     setTableOptions,
@@ -619,8 +667,14 @@ export function PaginatedListDataTable<
         listData = listData?.[path];
     }
 
-    const transformedData =
-        typeof transformData === 'function' ? transformData(listData?.items ?? []) : (listData?.items ?? []);
+    // Not loaded until the first response (or an error) arrives: `undefined` rows and
+    // a `null` total draw the skeleton, where `[]` and 0 would mean an empty list.
+    const loaded = listData != null || isError;
+    const items = listData?.items ?? [];
+    const transformedData = typeof transformData === 'function' ? transformData(items) : items;
+    // The remembered total is the unfiltered list's: a filtered or searched load
+    // neither reads nor overwrites it.
+    const filtered = Boolean(debouncedSearchTerm) || (columnFilters?.length ?? 0) > 0;
     return (
         <PaginatedListContext.Provider value={{ refetchPaginatedList }}>
             {isError && errorState ? (
@@ -628,13 +682,13 @@ export function PaginatedListDataTable<
             ) : (
                 <DataTable
                     columns={columns}
-                    data={transformedData}
+                    data={loaded ? transformedData : undefined}
                     isLoading={isFetching}
                     page={page}
                     itemsPerPage={itemsPerPage}
                     sorting={sorting}
                     columnFilters={columnFilters}
-                    totalItems={listData?.totalItems ?? 0}
+                    totalItems={loaded ? (listData?.totalItems ?? 0) : null}
                     onPageChange={onPageChange}
                     onSortChange={onSortChange}
                     onFilterChange={onFilterChange}
@@ -649,6 +703,9 @@ export function PaginatedListDataTable<
                     selectedItems={selectedItems}
                     onSelectionChange={onSelectionChange}
                     selectionStorageKey={selectionStorageKey}
+                    rowCountKey={filtered ? undefined : rowCountKey}
+                    skeletonCells={skeletonCells}
+                    rowLinks={rowLinks}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}

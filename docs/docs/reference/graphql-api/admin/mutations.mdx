@@ -2578,11 +2578,12 @@ type Mutation {
   typeLinks={{
     SetOrderShippingMethodResult: '/reference/graphql-api/admin/object-types#setordershippingmethodresult',
     ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
   }}
 >
 {`"""Sets the shipping method by id, which can be obtained with the \`eligibleShippingMethodsForDraftOrder\` query"""
 type Mutation {
-  setDraftOrderShippingMethod(orderId: ID!, shippingMethodId: ID!): SetOrderShippingMethodResult!
+  setDraftOrderShippingMethod(orderId: ID!, shippingMethodId: ID!, shippingOptionCode: String): SetOrderShippingMethodResult!
 }`}
 </GraphQLDoc>
 

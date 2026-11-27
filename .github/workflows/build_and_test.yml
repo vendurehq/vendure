@@ -418,9 +418,10 @@ jobs:
             actions: read
         services:
             mariadb:
-                # With v11.6.2+, a default was changed, (https://mariadb.com/kb/en/innodb-system-variables/#innodb_snapshot_isolation)
-                # which causes e2e test failures currently
-                image: mariadb:11.5
+                # 11.8 is the current LTS. Since 11.6.2 it defaults to innodb_snapshot_isolation=ON,
+                # which only applies under REPEATABLE READ; Vendure runs MySQL and MariaDB
+                # transactions at READ COMMITTED (see entityOptions.transactionIsolationLevel).
+                image: mariadb:11.8
                 env:
                     MARIADB_ROOT_PASSWORD: password
                 ports:

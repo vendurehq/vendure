@@ -10,6 +10,8 @@ import { uiConfig } from 'virtual:vendure-ui-config';
 
 import { getApiBaseUrl } from '../utils/config-utils.js';
 
+import { recordGraphQLError } from './copy-for-agent.js';
+
 const API_URL = getApiBaseUrl() + `/${uiConfig.api.adminApiPath}`;
 
 export type Variables = object;
@@ -124,6 +126,7 @@ function query<T, V extends Variables = Variables>(
     const documentString = typeof document === 'string' ? document : print(document);
     return awesomeClient.request(documentString, variables).catch(err => {
         handleInvalidChannelToken(err);
+        recordGraphQLError(err, documentString);
         throw err;
     }) as any;
 }
@@ -142,12 +145,15 @@ function mutate<T, V extends Variables = Variables>(
     maybeVariables?: V,
 ): Promise<T> | ((variables: V) => Promise<T>) {
     const documentString = typeof document === 'string' ? document : print(document);
+    const request = (variables: V): Promise<T> =>
+        awesomeClient.request(documentString, variables).catch(err => {
+            recordGraphQLError(err, documentString);
+            throw err;
+        }) as any;
     if (maybeVariables) {
-        return awesomeClient.request(documentString, maybeVariables) as any;
+        return request(maybeVariables);
     } else {
-        return (variables: V): Promise<T> => {
-            return awesomeClient.request(documentString, variables) as any;
-        };
+        return request;
     }
 }
 
