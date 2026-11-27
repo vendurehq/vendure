@@ -20,7 +20,7 @@ declare module '@tanstack/react-router' {
 const LIST_ROWS = 10;
 
 /**
- * The page frame of `Page`: the same margin, gap and header row, with a
+ * The page frame of `Page`: the same gap and header row, with a
  * skeleton title and action.
  */
 function PageSkeleton({
@@ -29,16 +29,17 @@ function PageSkeleton({
     children,
 }: Readonly<{ kind: 'list' | 'detail'; actionWidth: string; children: React.ReactNode }>) {
     return (
-        <div className="m-4 space-y-4" data-skeleton={kind}>
+        <div className="space-y-4" data-skeleton={kind}>
             <span className="sr-only" role="status">
                 <Trans>Loading…</Trans>
             </span>
             <PageHeader className="items-center" aria-hidden="true">
                 <PageHeaderContent>
-                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-4.5 w-32" />
                 </PageHeaderContent>
                 <PageHeaderActions>
-                    <Skeleton className={`h-8 ${actionWidth}`} />
+                    {/* As high as a button: 34px. */}
+                    <Skeleton className={`h-8.5 ${actionWidth}`} />
                 </PageHeaderActions>
             </PageHeader>
             <div aria-hidden="true">{children}</div>

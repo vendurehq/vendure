@@ -1,6 +1,7 @@
 import { RoutePending } from '@/vdb/components/layout/route-pending.js';
 import { Toaster } from '@/vdb/components/ui/sonner.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
+import { getDashboardWidgetFilters } from '@/vdb/framework/dashboard-widget/widget-extensions.js';
 import { registerDefaults } from '@/vdb/framework/defaults.js';
 import {
     clearCustomFieldsMap,
@@ -24,7 +25,7 @@ import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
-import { removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
+import { rememberBootShell, removeBootSplash, removeBootSplashWhenResolved } from './boot-splash.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
 import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
@@ -100,6 +101,15 @@ function InnerApp() {
     useEffect(() => {
         setDocumentDirection(isRTL ? 'rtl' : 'ltr');
     }, [isRTL]);
+
+    useEffect(() => {
+        rememberBootShell(
+            auth.status,
+            router.basepath,
+            isRTL ? 'rtl' : 'ltr',
+            getDashboardWidgetFilters().length,
+        );
+    }, [auth.status, router, isRTL]);
 
     const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
 
