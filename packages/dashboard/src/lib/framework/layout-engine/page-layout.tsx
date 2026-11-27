@@ -6,13 +6,13 @@ import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js'
 import { FormErrorSummary } from '@/vdb/components/shared/form-error-summary.js';
 import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confirmation.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import {
     DescriptionDetail,
     DescriptionItem,
     DescriptionList,
     DescriptionTerm,
 } from '@/vdb/components/ui/description-list.js';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
 import { IdChip } from '@/vdb/components/ui/id-chip.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
@@ -48,6 +48,7 @@ import {
 } from '@/vdb/components/ui/page-header.js';
 import { PageBlockContext } from '@/vdb/framework/layout-engine/page-block-provider.js';
 import { PageContext, PageContextValue } from '@/vdb/framework/layout-engine/page-provider.js';
+import { useIsPageSkeleton } from '@/vdb/hooks/use-is-page-skeleton.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { getLockedPageCard } from '../platform-promotion/locked-capabilities.js';
 import { getDashboardActionBarItems, getDashboardPageBlocks } from './layout-extensions.js';
@@ -253,6 +254,10 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     const extensionBlocks = getDashboardPageBlocks(page.pageId ?? '');
     const { hasPermissions } = usePermissions();
     const lockedPageCard = getLockedPageCard(usePlatformPromotion(), page.pageId);
+    // In the skeleton of a loading page there is no entity yet: an extension block
+    // shows as a skeleton card, and one that decides from the entity whether to
+    // render does not show.
+    const isSkeleton = useIsPageSkeleton();
     React.Children.forEach(children, child => {
         if (isPageBlock(child)) {
             childArray.push(child);
@@ -294,7 +299,7 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                 component: NonNullable<ExtensionBlockEntry['component']>;
             } => {
                 if (!block.component) return false;
-                if (typeof block.shouldRender === 'function' && !block.shouldRender(page)) {
+                if (typeof block.shouldRender === 'function' && (isSkeleton || !block.shouldRender(page))) {
                     return false;
                 }
                 const required = block.requiresPermission ?? [];
@@ -330,10 +335,26 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                             key={extensionBlock.id}
                             column={extensionBlock.location.column}
                             blockId={extensionBlock.id}
-                            title={extensionBlock.title}
-                            description={extensionBlock.description}
+                            title={
+                                isSkeleton && extensionBlock.title ? (
+                                    <Skeleton className="h-[1lh] w-28" />
+                                ) : (
+                                    extensionBlock.title
+                                )
+                            }
+                            description={
+                                isSkeleton && extensionBlock.description ? (
+                                    <Skeleton className="h-[1lh] w-48" />
+                                ) : (
+                                    extensionBlock.description
+                                )
+                            }
                         >
-                            <extensionBlock.component context={page} />
+                            {isSkeleton ? (
+                                <ExtensionBlockSkeleton />
+                            ) : (
+                                <extensionBlock.component context={page} />
+                            )}
                         </BlockComponent>,
                     );
                 }
@@ -348,8 +369,9 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
         }
     }
 
-    // The card for locked Platform blocks goes at the bottom of its column.
-    if (lockedPageCard) {
+    // The card for locked Platform blocks goes at the bottom of its column. A
+    // skeleton leaves it out: it is real, focusable content.
+    if (lockedPageCard && !isSkeleton) {
         finalChildArray.push(
             <PlatformPromotionPageCard
                 key="platform-promotion"
@@ -384,6 +406,18 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                     <div className="@3xl/layout:col-span-1 space-y-4">{sideBlocks}</div>
                 </div>
             )}
+        </div>
+    );
+}
+
+/**
+ * An extension block in the skeleton of a loading page.
+ */
+function ExtensionBlockSkeleton() {
+    return (
+        <div className="space-y-3" aria-hidden="true">
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-6 w-full" />
         </div>
     );
 }
@@ -731,7 +765,11 @@ function PageActionBarMenu({
                             <DescriptionItem>
                                 <DescriptionTerm>ID</DescriptionTerm>
                                 <DescriptionDetail className="justify-self-end">
-                                    <IdChip value={String(entity.id)} copyLabel={t`Copy ID`} copiedLabel={t`Copied`} />
+                                    <IdChip
+                                        value={String(entity.id)}
+                                        copyLabel={t`Copy ID`}
+                                        copiedLabel={t`Copied`}
+                                    />
                                 </DescriptionDetail>
                             </DescriptionItem>
                             {entity.createdAt && (

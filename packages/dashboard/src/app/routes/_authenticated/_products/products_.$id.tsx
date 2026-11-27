@@ -63,6 +63,19 @@ const pageId = 'product-detail';
 
 export const Route = createFileRoute('/_authenticated/_products/products_/$id')({
     component: ProductDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', editor: true },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Product' },
+                { column: 'main', blockId: 'product-variants-table', content: 'table' },
+                { column: 'side', blockId: 'option-groups', content: 'list', rows: 3, title: true },
+                { column: 'side', blockId: 'facet-values', content: 'list', rows: 4, title: true },
+                { column: 'side', blockId: 'assets', content: 'media', rows: 2, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: productDetailDocument,

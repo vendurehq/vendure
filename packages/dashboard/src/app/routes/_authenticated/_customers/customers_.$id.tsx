@@ -70,6 +70,25 @@ function errorResultDescription(result: { message: string; validationErrorMessag
 
 export const Route = createFileRoute('/_authenticated/_customers/customers_/$id')({
     component: CustomerDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 3 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Customer',
+                },
+                { column: 'main', blockId: 'addresses', content: 'list', rows: 7, title: true },
+                { column: 'main', blockId: 'orders', content: 'table' },
+                { column: 'main', blockId: 'history', content: 'list', rows: 4, title: true },
+                { column: 'side', blockId: 'status', content: 'list', rows: 1, title: true },
+                { column: 'side', blockId: 'groups', content: 'list', rows: 1, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: () =>

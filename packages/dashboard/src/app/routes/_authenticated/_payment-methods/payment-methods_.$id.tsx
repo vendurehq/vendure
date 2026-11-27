@@ -36,6 +36,29 @@ const pageId = 'payment-method-detail';
 
 export const Route = createFileRoute('/_authenticated/_payment-methods/payment-methods_/$id')({
     component: PaymentMethodDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
+                { column: 'main', blockId: 'main-form', editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'PaymentMethod',
+                },
+                {
+                    column: 'main',
+                    blockId: 'payment-eligibility-checker',
+                    content: 'list',
+                    rows: 1,
+                    title: true,
+                },
+                { column: 'main', blockId: 'payment-handler', content: 'list', rows: 2, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: paymentMethodDetailDocument,

@@ -35,6 +35,16 @@ type TargetType = 'zone' | 'country';
 
 export const Route = createFileRoute('/_authenticated/_tax-rates/tax-rates_/$id')({
     component: TaxRateDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
+                { column: 'main', blockId: 'main-form', rows: 2 },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'TaxRate' },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: taxRateDetailDocument,

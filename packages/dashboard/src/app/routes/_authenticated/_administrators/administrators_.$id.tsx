@@ -31,6 +31,21 @@ const pageId = 'administrator-detail';
 
 export const Route = createFileRoute('/_authenticated/_administrators/administrators_/$id')({
     component: AdministratorDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 2 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Administrator',
+                },
+                { column: 'main', blockId: 'roles', content: 'list', rows: 8, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: administratorDetailDocument,

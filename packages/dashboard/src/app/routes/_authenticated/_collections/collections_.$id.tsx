@@ -43,6 +43,24 @@ const pageId = 'collection-detail';
 
 export const Route = createFileRoute('/_authenticated/_collections/collections_/$id')({
     component: CollectionDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'privacy', content: 'list', rows: 3 },
+                { column: 'main', blockId: 'main-form', editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'Collection',
+                },
+                { column: 'main', blockId: 'filters', content: 'list', rows: 4, title: true },
+                { column: 'side', blockId: 'assets', content: 'media', rows: 2 },
+                { column: 'main', blockId: 'contents', content: 'table' },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: collectionDetailDocument,

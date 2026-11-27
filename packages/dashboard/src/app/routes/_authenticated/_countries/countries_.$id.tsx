@@ -30,6 +30,16 @@ const pageId = 'country-detail';
 
 export const Route = createFileRoute('/_authenticated/_countries/countries_/$id')({
     component: CountryDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'enabled', content: 'list', rows: 2 },
+                { column: 'main', blockId: 'main-form' },
+                { column: 'main', blockId: 'custom-fields', content: 'custom-fields', entityType: 'Country' },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: countryDetailDocument,

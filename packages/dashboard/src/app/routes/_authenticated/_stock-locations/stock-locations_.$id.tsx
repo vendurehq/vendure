@@ -28,6 +28,20 @@ const pageId = 'stock-location-detail';
 
 export const Route = createFileRoute('/_authenticated/_stock-locations/stock-locations_/$id')({
     component: StockLocationDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', editor: true },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'StockLocation',
+                },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: stockLocationDetailQuery,

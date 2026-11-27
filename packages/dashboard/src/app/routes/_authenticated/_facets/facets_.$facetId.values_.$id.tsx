@@ -33,6 +33,20 @@ const pageId = 'facet-value-detail';
 
 export const Route = createFileRoute('/_authenticated/_facets/facets_/$facetId/values_/$id')({
     component: FacetValueDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'FacetValue',
+                },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: facetValueDetailDocument,

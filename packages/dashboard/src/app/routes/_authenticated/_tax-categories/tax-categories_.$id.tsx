@@ -28,6 +28,20 @@ const pageId = 'tax-category-detail';
 
 export const Route = createFileRoute('/_authenticated/_tax-categories/tax-categories_/$id')({
     component: TaxCategoryDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'TaxCategory',
+                },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: taxCategoryDetailDocument,

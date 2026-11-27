@@ -1,8 +1,13 @@
-import { Card, CardContent } from '@/vdb/components/ui/card.js';
+import { Card } from '@/vdb/components/ui/card.js';
 import { PageHeader, PageHeaderActions, PageHeaderContent } from '@/vdb/components/ui/page-header.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { AUTHENTICATED_ROUTE_PREFIX } from '@/vdb/constants.js';
+import {
+    DEFAULT_DETAIL_SKELETON,
+    DetailPageSkeletonBlocks,
+    DetailPageSkeletonLayout,
+} from '@/vdb/framework/page/detail-page-skeleton.js';
 import { Trans } from '@lingui/react/macro';
 import { useMatch } from '@tanstack/react-router';
 import React from 'react';
@@ -10,10 +15,11 @@ import React from 'react';
 declare module '@tanstack/react-router' {
     interface StaticDataRouteOption {
         /**
-         * The skeleton that shows while the route loads. Without it, a route whose
+         * The skeleton that shows while the route loads: `'list'`, `'detail'`, or
+         * the blocks of a detail page in its own layout. Without it, a route whose
          * path has a param gets the detail skeleton, any other the list skeleton.
          */
-        pendingSkeleton?: 'list' | 'detail';
+        pendingSkeleton?: 'list' | 'detail' | DetailPageSkeletonLayout;
     }
 }
 
@@ -75,56 +81,16 @@ export function ListPageSkeleton() {
     );
 }
 
-function FieldSkeleton({ className }: Readonly<{ className?: string }>) {
-    return (
-        <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className={className ?? 'h-9 w-full'} />
-        </div>
-    );
-}
-
-function SideCardSkeleton({ rows }: Readonly<{ rows: number }>) {
-    return (
-        <Card>
-            <CardContent className="space-y-3">
-                <Skeleton className="h-4 w-28" />
-                {Array.from({ length: rows }, (_, index) => (
-                    <Skeleton key={index} className="h-6 w-full" />
-                ))}
-            </CardContent>
-        </Card>
-    );
-}
-
 /**
- * The shape of a detail page while its route loads: the title row, the main
- * card with form rows, and the side column, in the grid of `PageLayout`.
+ * The shape of a detail page while its route loads: the title row, then the
+ * page's blocks in its columns. Without a layout, one form card and two side cards.
  */
-export function DetailPageSkeleton() {
+export function DetailPageSkeleton({
+    layout = DEFAULT_DETAIL_SKELETON,
+}: Readonly<{ layout?: DetailPageSkeletonLayout }>) {
     return (
         <PageSkeleton kind="detail" actionWidth="w-20">
-            <div className="@container/layout w-full">
-                <div className="grid grid-cols-1 gap-4 @3xl/layout:grid-cols-4">
-                    <Card className="@3xl/layout:col-span-3">
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-6 @md:grid-cols-2">
-                                <FieldSkeleton />
-                                <FieldSkeleton />
-                            </div>
-                            <FieldSkeleton className="h-28 w-full" />
-                            <div className="grid gap-6 @md:grid-cols-2">
-                                <FieldSkeleton />
-                                <FieldSkeleton />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <div className="space-y-4 @3xl/layout:col-span-1">
-                        <SideCardSkeleton rows={2} />
-                        <SideCardSkeleton rows={3} />
-                    </div>
-                </div>
-            </div>
+            <DetailPageSkeletonBlocks layout={layout} />
         </PageSkeleton>
     );
 }
@@ -162,6 +128,9 @@ export function RoutePending() {
     ) {
         return <RouteSpinner />;
     }
-    const kind = staticData?.pendingSkeleton ?? (routeId.includes('/$') ? 'detail' : 'list');
-    return kind === 'detail' ? <DetailPageSkeleton /> : <ListPageSkeleton />;
+    const skeleton = staticData?.pendingSkeleton ?? (routeId.includes('/$') ? 'detail' : 'list');
+    if (skeleton === 'list') {
+        return <ListPageSkeleton />;
+    }
+    return <DetailPageSkeleton layout={skeleton === 'detail' ? undefined : skeleton} />;
 }

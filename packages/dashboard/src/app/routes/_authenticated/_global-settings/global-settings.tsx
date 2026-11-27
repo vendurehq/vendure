@@ -27,7 +27,20 @@ const pageId = 'global-settings';
 
 export const Route = createFileRoute('/_authenticated/_global-settings/global-settings')({
     component: GlobalSettingsPage,
-    staticData: { pendingSkeleton: 'detail' },
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'main', blockId: 'main-form', rows: 2 },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'GlobalSettings',
+                },
+            ],
+        },
+    },
     loader: async ({ context }) => {
         const { extendedQuery: extendedQueryDocument } = extendDetailFormQuery(
             addCustomFields(globalSettingsDocument),

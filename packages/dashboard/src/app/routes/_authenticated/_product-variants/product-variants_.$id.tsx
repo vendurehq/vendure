@@ -65,6 +65,25 @@ const pageId = 'product-variant-detail';
 
 export const Route = createFileRoute('/_authenticated/_product-variants/product-variants_/$id')({
     component: ProductVariantDetailPage,
+    staticData: {
+        pendingSkeleton: {
+            pageId,
+            blocks: [
+                { column: 'side', blockId: 'options', content: 'list', rows: 4, title: true },
+                { column: 'main', blockId: 'main-form' },
+                {
+                    column: 'main',
+                    blockId: 'custom-fields',
+                    content: 'custom-fields',
+                    entityType: 'ProductVariant',
+                },
+                { column: 'main', blockId: 'price-and-tax', rows: 2, title: true },
+                { column: 'main', blockId: 'stock', rows: 4, title: true },
+                { column: 'side', blockId: 'facet-values', content: 'list', rows: 1, title: true },
+                { column: 'side', blockId: 'assets', content: 'media', rows: 2, title: true },
+            ],
+        },
+    },
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: () =>

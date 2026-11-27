@@ -22,6 +22,9 @@ const EXCLUDED_PATHS = [
     'framework/page/strip-unchanged-translations.ts',
     'components/data-table/row-label.ts',
     'components/layout/command-palette-items.ts',
+    'framework/page/detail-page-skeleton.tsx',
+    'framework/layout-engine/page-skeleton-context.ts',
+    'hooks/use-is-page-skeleton.ts',
 ];
 const LIB_DIR = path.join(__dirname, '..', 'src', 'lib');
 const INDEX_FILE = path.join(LIB_DIR, 'index.ts');
