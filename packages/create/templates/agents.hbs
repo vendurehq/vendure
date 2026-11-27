@@ -19,6 +19,9 @@ Known issue in the 4.0 previews, up to `@vendure/cli` 4.0.0-preview.3: in this p
 - Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate generate <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.
 - Keep plugins in `{{ serverPath }}src/plugins/`, and add them to the `store` extension in `{{ serverPath }}src/vendure-config.ts`.
 - `{{ serverPath }}.vendure/create.json` records what the project was created with. Do not edit it.
+{{#if storefront}}
+- Before you change the storefront, read `apps/storefront/AGENTS.md`, the rules of the {{ storefront.name }} starter.
+{{/if}}
 - Do not set the options the Cloud runtime owns, such as `dbConnectionOptions`, the API port or the superadmin credentials. `defineCloudConfig` refuses them.
 
 ## Agent tools

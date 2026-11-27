@@ -148,10 +148,37 @@ export async function downloadAndExtractStorefront(
         }
         const nodeReadable = Readable.fromWeb(response.body as import('node:stream/web').ReadableStream);
         await pipeline(nodeReadable, createWriteStream(tempTarPath));
-        await fs.ensureDir(targetDir);
-        // Remove the top-level directory from the archive.
-        await tar.extract({ file: tempTarPath, cwd: targetDir, strip: 1 });
+        await extractStorefrontArchive(tempTarPath, targetDir);
     } finally {
         await fs.remove(tempTarPath);
     }
+}
+
+/**
+ * Files at the root of a starter repository that work only at the root of a repository, and why
+ * create leaves them out of `apps/storefront`. The starter's `AGENTS.md` stays, and the root
+ * `AGENTS.md` points to it.
+ */
+export const STOREFRONT_ROOT_ONLY_FILES: Readonly<Record<string, string>> = {
+    'package-lock.json': 'The workspace install writes the one lockfile, at the root.',
+    '.npmrc': 'npm reads only the root `.npmrc` of a workspace, so this one has no effect.',
+    '.github': 'GitHub reads workflows and templates only at the repository root.',
+    '.mcp.json': 'Claude Code reads one `.mcp.json`, which create writes at the root.',
+};
+
+/** Extracts a starter archive into `targetDir`, without its top-level directory or root-only files. */
+export async function extractStorefrontArchive(file: string, targetDir: string): Promise<void> {
+    await fs.ensureDir(targetDir);
+    await tar.extract({
+        file,
+        cwd: targetDir,
+        strip: 1,
+        filter: entryPath => !isRootOnlyFile(entryPath),
+    });
+}
+
+/** The filter sees the path before `strip` removes the archive's top-level directory. */
+function isRootOnlyFile(entryPath: string): boolean {
+    const name = entryPath.split('/')[1];
+    return name !== undefined && Object.prototype.hasOwnProperty.call(STOREFRONT_ROOT_ONLY_FILES, name);
 }

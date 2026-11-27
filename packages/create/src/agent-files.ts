@@ -2,7 +2,8 @@
  * The agent files of a project, written from one place so every client gets the same content:
  *
  * - `AGENTS.md`, with the project's package manager, and for Claude Code `CLAUDE.md`, which
- *   imports it.
+ *   imports it. With a storefront, Claude Code also gets `apps/storefront/CLAUDE.md`, which
+ *   imports the starter's own `AGENTS.md`.
  * - `.agents/skills/`: every skill in the assets, which `prepare-assets.cjs` copies from the
  *   repository's `skills/` folder.
  * - For each client, its checked-in MCP config: create writes the `vendure-docs` server, and the
@@ -16,7 +17,7 @@ import path from 'node:path';
 
 import { SELF_HOSTING_GUIDE_URL } from './constants.js';
 import { PackageManagerInfo } from './package-manager.js';
-import { SERVER_WORKSPACE_DIR } from './project-files.js';
+import { SERVER_WORKSPACE_DIR, STOREFRONT_WORKSPACE_DIR } from './project-files.js';
 import { runCommand } from './steps.js';
 import { StorefrontStarter } from './storefront-starters.js';
 import { AgentClient } from './types.js';
@@ -186,6 +187,16 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
     }
     if (input.agents.includes('claude')) {
         write('CLAUDE.md', '@AGENTS.md\n');
+        // Claude Code reads a directory's CLAUDE.md, not its AGENTS.md, when it works there.
+        const storefrontAgentsMd = path.join(input.root, STOREFRONT_WORKSPACE_DIR, 'AGENTS.md');
+        const storefrontClaudeMd = `${STOREFRONT_WORKSPACE_DIR}/CLAUDE.md`;
+        if (
+            input.storefront &&
+            fs.existsSync(storefrontAgentsMd) &&
+            !fs.existsSync(path.join(input.root, storefrontClaudeMd))
+        ) {
+            write(storefrontClaudeMd, '@AGENTS.md\n');
+        }
         write('.claude/settings.json', claudeSettings());
         // Claude Code loads project skills only from `.claude/skills/`, so it gets its own copy.
         for (const skill of skills) {

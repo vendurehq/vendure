@@ -1,7 +1,13 @@
+import fs from 'fs-extra';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import * as tar from 'tar';
 import { describe, expect, it } from 'vitest';
 
 import {
     configureStorefrontPackageJson,
+    extractStorefrontArchive,
     getStorefrontStarter,
     renderStorefrontEnvironment,
     STOREFRONT_STARTERS,
@@ -108,5 +114,56 @@ describe('storefront starters', () => {
                 'a double quote and a backtick, leaving no character to quote it with. ' +
                 'Choose a project name without one of those characters.',
         );
+    });
+});
+
+describe('extractStorefrontArchive()', () => {
+    it('leaves out the files that work only at the repository root, and keeps the rest', async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), 'vendure-create-storefront-'));
+        try {
+            const repo = path.join(dir, 'vendurehq-starter-abc123');
+            const files = [
+                'package.json',
+                'package-lock.json',
+                '.npmrc',
+                '.mcp.json',
+                '.github/workflows/ci.yml',
+                '.github/PULL_REQUEST_TEMPLATE.md',
+                'AGENTS.md',
+                'LICENSE',
+                'src/app.ts',
+                // Only the root files are left out.
+                'docs/.github/notes.md',
+                'scripts/package-lock.json',
+            ];
+            for (const file of files) {
+                fs.outputFileSync(path.join(repo, file), file);
+            }
+            const archive = path.join(dir, 'starter.tar.gz');
+            await tar.create({ file: archive, gzip: true, cwd: dir }, [path.basename(repo)]);
+            const target = path.join(dir, 'apps/storefront');
+
+            await extractStorefrontArchive(archive, target);
+
+            const extracted = fs
+                .readdirSync(target, { recursive: true, withFileTypes: true })
+                .filter(entry => entry.isFile())
+                .map(entry =>
+                    path.relative(target, path.join(entry.parentPath, entry.name)).split(path.sep).join('/'),
+                )
+                .sort();
+            expect(extracted).toEqual(
+                [
+                    'AGENTS.md',
+                    'LICENSE',
+                    'docs/.github/notes.md',
+                    'package.json',
+                    'scripts/package-lock.json',
+                    'src/app.ts',
+                ].sort(),
+            );
+        } finally {
+            fs.removeSync(dir);
+        }
     });
 });

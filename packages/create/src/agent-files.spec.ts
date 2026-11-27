@@ -80,6 +80,18 @@ describe('renderAgentsMd()', () => {
         expect(text).toContain('with a TanStack Start storefront in `apps/storefront`');
         expect(text).toContain('Run the `vendure` commands in `apps/server`.');
         expect(text).toContain('`apps/server/src/vendure-config.ts`');
+        expect(text).toContain('read `apps/storefront/AGENTS.md`, the rules of the TanStack Start starter.');
+    });
+
+    it('points to no storefront guide without a storefront', () => {
+        const text = renderAgentsMd(template, {
+            name: 'my-shop',
+            pmInfo: getPackageManagerInfo('npm'),
+            storefront: undefined,
+            skills: ['vendure-cli'],
+            claudeSkills: false,
+        });
+        expect(text).not.toContain('apps/storefront');
     });
 });
 
@@ -340,6 +352,29 @@ describe('writeAgentFiles()', () => {
         });
         expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
             '- Skills in `.agents/skills/`: `vendure-cli`, `vendure-store-setup`, `vendure-troubleshooting`.',
+        );
+    });
+
+    it("gives Claude Code the storefront starter's AGENTS.md through a CLAUDE.md beside it", async () => {
+        const dir = path.join(workDir, 'storefront-claude');
+        fs.mkdirSync(path.join(dir, 'apps/storefront'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'apps/storefront/AGENTS.md'), '# Agent guidance\n');
+        const input = {
+            ...base,
+            storefront: STOREFRONT_STARTERS.find(s => s.id === 'nextjs'),
+            root: dir,
+            serverDir: path.join(dir, 'apps/server'),
+            mcpInstallUnavailable: { kind: 'not-installed' as const, reason: 'x', retryable: true },
+        };
+
+        const codex = await writeAgentFiles({ ...input, agents: ['codex'] });
+        expect(codex.written).not.toContain('apps/storefront/CLAUDE.md');
+        const claude = await writeAgentFiles({ ...input, agents: ['claude'] });
+
+        expect(claude.written).toContain('apps/storefront/CLAUDE.md');
+        expect(fs.readFileSync(path.join(dir, 'apps/storefront/CLAUDE.md'), 'utf-8')).toBe('@AGENTS.md\n');
+        expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
+            'read `apps/storefront/AGENTS.md`, the rules of the Next.js starter.',
         );
     });
 
