@@ -89,8 +89,7 @@ const applyGridLayouts = (
 
 function DashboardPage() {
     const search = Route.useSearch();
-    const navigate = Route.useNavigate();
-    const setupChecklist = useSetupChecklist(search.setup === true, () => navigate({ to: '/', search: {} }));
+    const setupChecklist = useSetupChecklist(search.setup === true);
     const [widgets, setWidgets] = useState<DashboardWidgetInstance[]>([]);
     // Hidden widgets keep their layout so re-adding restores position/size.
     const [hiddenWidgets, setHiddenWidgets] = useState<DashboardWidgetInstance[]>([]);
