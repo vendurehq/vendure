@@ -6,7 +6,7 @@ import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import type { MessageDescriptor } from '@lingui/core';
-import { msg } from '@lingui/core/macro';
+import { msg, plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -209,11 +209,13 @@ export function SetupChecklist({ state }: Readonly<{ state: SetupChecklistState 
                             items={items}
                             memoryKey={channelId ? `dashboard:setup-checklist:${channelId}` : undefined}
                             label={i18n._(msg`Action needed`)}
-                            toneLabels={{
-                                critical: i18n._(msg`Error`),
-                                warning: i18n._(msg`Warning`),
-                                info: i18n._(msg`Info`),
-                            }}
+                            countLabel={(count, tone) =>
+                                tone === 'critical'
+                                    ? plural(count, { one: '# error', other: '# errors' })
+                                    : tone === 'warning'
+                                      ? plural(count, { one: '# warning', other: '# warnings' })
+                                      : plural(count, { one: '# note', other: '# notes' })
+                            }
                         />
                     ) : (
                         <div className="text-success flex items-center gap-2 text-sm">

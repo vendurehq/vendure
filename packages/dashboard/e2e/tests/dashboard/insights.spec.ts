@@ -98,8 +98,8 @@ test.describe('Setup checklist', () => {
         const fold = checklist.getByRole('button', { name: /Action needed/ });
         await fold.click();
         await expect(fold).toHaveAttribute('aria-expanded', 'false');
-        await expect(fold).toContainText('1 Error');
-        await expect(fold).toContainText('1 Warning');
+        await expect(fold).toContainText('1 error');
+        await expect(fold).toContainText('1 warning');
 
         // The fold is remembered for this Channel.
         await page.reload();
