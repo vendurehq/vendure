@@ -117,6 +117,28 @@ describe('storefront starters', () => {
     });
 });
 
+describe('configureStorefrontPackageJson()', () => {
+    it('removes the husky prepare script, whose hooks create leaves out', () => {
+        const storefront = getStorefrontStarter('tanstack');
+        const configured = configureStorefrontPackageJson(
+            { scripts: { prepare: 'husky', lint: 'biome lint' } },
+            storefront,
+            setupContext,
+        );
+        expect(configured.scripts).not.toHaveProperty('prepare');
+        expect(configured.scripts).toMatchObject({ lint: 'biome lint' });
+    });
+
+    it('keeps any other prepare script', () => {
+        const configured = configureStorefrontPackageJson(
+            { scripts: { prepare: 'node scripts/setup.mjs' } },
+            getStorefrontStarter('nextjs'),
+            setupContext,
+        );
+        expect(configured.scripts).toMatchObject({ prepare: 'node scripts/setup.mjs' });
+    });
+});
+
 describe('extractStorefrontArchive()', () => {
     it('leaves out the files that work only at the repository root, and keeps the rest', async () => {
         const dir = mkdtempSync(path.join(tmpdir(), 'vendure-create-storefront-'));
@@ -129,6 +151,8 @@ describe('extractStorefrontArchive()', () => {
                 '.mcp.json',
                 '.github/workflows/ci.yml',
                 '.github/PULL_REQUEST_TEMPLATE.md',
+                '.husky/commit-msg',
+                '.vscode/settings.json',
                 'AGENTS.md',
                 'LICENSE',
                 'src/app.ts',
@@ -154,6 +178,7 @@ describe('extractStorefrontArchive()', () => {
                 .sort();
             expect(extracted).toEqual(
                 [
+                    '.vscode/settings.json',
                     'AGENTS.md',
                     'LICENSE',
                     'docs/.github/notes.md',

@@ -109,6 +109,8 @@ export interface AgentsMdInput {
     claudeSkills: boolean;
     pmInfo: PackageManagerInfo;
     storefront: StorefrontStarter | undefined;
+    /** Whether the storefront starter has its own `AGENTS.md`, which the root one points to. */
+    storefrontAgentsMd?: boolean;
 }
 
 export function renderAgentsMd(template: string, input: AgentsMdInput): string {
@@ -120,6 +122,7 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
         typecheck: `${input.pmInfo.runScript} typecheck`,
         exec: input.pmInfo.exec,
         storefront: input.storefront,
+        storefrontAgentsMd: input.storefront !== undefined && input.storefrontAgentsMd === true,
         serverDir: input.storefront ? SERVER_WORKSPACE_DIR : undefined,
         serverPath: input.storefront ? `${SERVER_WORKSPACE_DIR}/` : '',
         skills: input.skills,
@@ -137,8 +140,11 @@ export interface McpInstallUnavailable {
     retryable: boolean;
 }
 
-/** `writeAgentFiles` lists the skills itself, from the assets. */
-export interface WriteAgentFilesInput extends Omit<AgentsMdInput, 'skills' | 'claudeSkills'> {
+/** `writeAgentFiles` lists the skills itself, from the assets, and looks for the storefront's `AGENTS.md`. */
+export interface WriteAgentFilesInput extends Omit<
+    AgentsMdInput,
+    'skills' | 'claudeSkills' | 'storefrontAgentsMd'
+> {
     agents: readonly AgentClient[];
     /** The project root, which is the git root when the config can be completed. */
     root: string;
@@ -172,12 +178,16 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
 
     const skillsDir = path.join(input.assetsDir, 'skills');
     const skills = fs.readdirSync(skillsDir).sort();
+    const storefrontAgentsMd =
+        input.storefront !== undefined &&
+        fs.existsSync(path.join(input.root, STOREFRONT_WORKSPACE_DIR, 'AGENTS.md'));
     write(
         'AGENTS.md',
         renderAgentsMd(fs.readFileSync(path.join(input.assetsDir, 'agents.hbs'), 'utf-8'), {
             ...input,
             skills,
             claudeSkills: input.agents.includes('claude'),
+            storefrontAgentsMd,
         }),
     );
     for (const skill of skills) {
@@ -188,13 +198,8 @@ export async function writeAgentFiles(input: WriteAgentFilesInput): Promise<Agen
     if (input.agents.includes('claude')) {
         write('CLAUDE.md', '@AGENTS.md\n');
         // Claude Code reads a directory's CLAUDE.md, not its AGENTS.md, when it works there.
-        const storefrontAgentsMd = path.join(input.root, STOREFRONT_WORKSPACE_DIR, 'AGENTS.md');
         const storefrontClaudeMd = `${STOREFRONT_WORKSPACE_DIR}/CLAUDE.md`;
-        if (
-            input.storefront &&
-            fs.existsSync(storefrontAgentsMd) &&
-            !fs.existsSync(path.join(input.root, storefrontClaudeMd))
-        ) {
+        if (storefrontAgentsMd && !fs.existsSync(path.join(input.root, storefrontClaudeMd))) {
             write(storefrontClaudeMd, '@AGENTS.md\n');
         }
         write('.claude/settings.json', claudeSettings());

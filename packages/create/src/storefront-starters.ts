@@ -90,11 +90,13 @@ export function configureStorefrontPackageJson(
 ): StorefrontPackageJson {
     // These entries intentionally override the downloaded package.json. Starter repositories must
     // keep required flags out of their dev/start scripts, or mirror those flags here.
+    // `husky` in `prepare` installs the hooks of `.husky`, which create leaves out.
+    const { prepare, ...scripts } = packageJson.scripts ?? {};
     return {
         ...packageJson,
         name: 'storefront',
         scripts: {
-            ...(packageJson.scripts ?? {}),
+            ...(prepare === undefined || prepare.trim() === 'husky' ? scripts : { ...scripts, prepare }),
             ...storefront.packageScripts(context),
         },
     };
@@ -155,16 +157,23 @@ export async function downloadAndExtractStorefront(
 }
 
 /**
- * Files at the root of a starter repository that work only at the root of a repository, and why
+ * Files at the root of a starter repository that work only at the root of a repository, so
  * create leaves them out of `apps/storefront`. The starter's `AGENTS.md` stays, and the root
- * `AGENTS.md` points to it.
+ * `AGENTS.md` points to it. `.vscode` stays too: VS Code reads it when the storefront folder is
+ * opened on its own.
  */
-export const STOREFRONT_ROOT_ONLY_FILES: Readonly<Record<string, string>> = {
-    'package-lock.json': 'The workspace install writes the one lockfile, at the root.',
-    '.npmrc': 'npm reads only the root `.npmrc` of a workspace, so this one has no effect.',
-    '.github': 'GitHub reads workflows and templates only at the repository root.',
-    '.mcp.json': 'Claude Code reads one `.mcp.json`, which create writes at the root.',
-};
+export const STOREFRONT_ROOT_ONLY_FILES: ReadonlySet<string> = new Set([
+    // The workspace install writes the one lockfile, at the root.
+    'package-lock.json',
+    // npm reads only the root `.npmrc` of a workspace, so this one has no effect.
+    '.npmrc',
+    // GitHub reads workflows and templates only at the repository root.
+    '.github',
+    // Claude Code reads one `.mcp.json`, which create writes at the root.
+    '.mcp.json',
+    // husky installs its hooks only where `.git` is, so they never run from `apps/storefront`.
+    '.husky',
+]);
 
 /** Extracts a starter archive into `targetDir`, without its top-level directory or root-only files. */
 export async function extractStorefrontArchive(file: string, targetDir: string): Promise<void> {
@@ -180,5 +189,5 @@ export async function extractStorefrontArchive(file: string, targetDir: string):
 /** The filter sees the path before `strip` removes the archive's top-level directory. */
 function isRootOnlyFile(entryPath: string): boolean {
     const name = entryPath.split('/')[1];
-    return name !== undefined && Object.prototype.hasOwnProperty.call(STOREFRONT_ROOT_ONLY_FILES, name);
+    return name !== undefined && STOREFRONT_ROOT_ONLY_FILES.has(name);
 }

@@ -74,6 +74,7 @@ describe('renderAgentsMd()', () => {
             name: 'my-shop',
             pmInfo: getPackageManagerInfo('npm'),
             storefront: STOREFRONT_STARTERS.find(s => s.id === 'tanstack'),
+            storefrontAgentsMd: true,
             skills: ['vendure-cli'],
             claudeSkills: false,
         });
@@ -375,6 +376,47 @@ describe('writeAgentFiles()', () => {
         expect(fs.readFileSync(path.join(dir, 'apps/storefront/CLAUDE.md'), 'utf-8')).toBe('@AGENTS.md\n');
         expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).toContain(
             'read `apps/storefront/AGENTS.md`, the rules of the Next.js starter.',
+        );
+    });
+
+    it("keeps a storefront starter's own CLAUDE.md", async () => {
+        const dir = path.join(workDir, 'storefront-own-claude');
+        fs.mkdirSync(path.join(dir, 'apps/storefront'), { recursive: true });
+        fs.writeFileSync(path.join(dir, 'apps/storefront/AGENTS.md'), '# Agent guidance\n');
+        fs.writeFileSync(path.join(dir, 'apps/storefront/CLAUDE.md'), '# Starter rules\n');
+
+        const result = await writeAgentFiles({
+            ...base,
+            storefront: STOREFRONT_STARTERS.find(s => s.id === 'nextjs'),
+            agents: ['claude'],
+            root: dir,
+            serverDir: path.join(dir, 'apps/server'),
+            mcpInstallUnavailable: { kind: 'not-installed', reason: 'x', retryable: true },
+        });
+
+        expect(result.written).not.toContain('apps/storefront/CLAUDE.md');
+        expect(fs.readFileSync(path.join(dir, 'apps/storefront/CLAUDE.md'), 'utf-8')).toBe(
+            '# Starter rules\n',
+        );
+    });
+
+    it('points to no storefront guide when the storefront starter has no AGENTS.md', async () => {
+        const dir = path.join(workDir, 'storefront-no-agents-md');
+        fs.mkdirSync(path.join(dir, 'apps/storefront'), { recursive: true });
+
+        const result = await writeAgentFiles({
+            ...base,
+            storefront: STOREFRONT_STARTERS.find(s => s.id === 'nextjs'),
+            agents: ['claude'],
+            root: dir,
+            serverDir: path.join(dir, 'apps/server'),
+            mcpInstallUnavailable: { kind: 'not-installed', reason: 'x', retryable: true },
+        });
+
+        expect(result.written).not.toContain('apps/storefront/CLAUDE.md');
+        expect(fs.existsSync(path.join(dir, 'apps/storefront/CLAUDE.md'))).toBe(false);
+        expect(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf-8')).not.toContain(
+            'apps/storefront/AGENTS.md',
         );
     });
 
