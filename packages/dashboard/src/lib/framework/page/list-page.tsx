@@ -15,6 +15,7 @@ import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { AnyRoute, AnyRouter, useNavigate } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState, Table } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
+import { useEffect, useRef } from 'react';
 
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import {
@@ -573,6 +574,15 @@ export function ListPage<
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
     const navigate = useNavigate<AnyRouter>({ from: route.fullPath });
+    // The table reports its initial state on mount. Writing that to the URL must not add a history entry,
+    // or "back" to the list deletes the "forward" entry.
+    const mountedRef = useRef(false);
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
     const { setTableSettings, settings } = useUserSettings();
     const tableSettings = pageId ? settings.tableSettings?.[pageId] : undefined;
 
@@ -620,6 +630,7 @@ export function ListPage<
         const sort = sortToString(listState.sort ?? tableState.sorting);
         const filters = listState.filters ?? tableState.columnFilters;
         navigate({
+            replace: !mountedRef.current,
             search: (prev: Record<string, unknown>) =>
                 ({ ...prev, sort, page, perPage, filters: filters.length ? filters : undefined }) as never,
         });

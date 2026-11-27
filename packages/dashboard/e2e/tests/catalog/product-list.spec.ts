@@ -326,6 +326,22 @@ test.describe('Product List', () => {
             expect(page2Rows[0]).not.toBe(page1Rows[0]);
         });
 
+        // #6018 — mounting a list page no longer adds a history entry, but a page change by the
+        // user still does, so "back" returns to the previous page of the list
+        test('should return to page 1 when going back after navigating to page 2', async ({ page }) => {
+            const lp = listPage(page);
+            await lp.goto();
+            await lp.expectLoaded();
+            const page1Rows = await lp.getRows().allTextContents();
+
+            await lp.clickNextPage();
+            await expect(page).toHaveURL(/[?&]page=2(&|$)/);
+
+            await page.goBack();
+            await expect(page).toHaveURL(/[?&]page=1(&|$)/);
+            await expect(lp.getRows().first()).toHaveText(page1Rows[0]);
+        });
+
         test('should change rows per page', async ({ page }) => {
             const lp = listPage(page);
             await lp.goto();
