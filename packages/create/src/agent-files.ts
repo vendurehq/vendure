@@ -122,7 +122,7 @@ export function renderAgentsMd(template: string, input: AgentsMdInput): string {
         typecheck: `${input.pmInfo.runScript} typecheck`,
         exec: input.pmInfo.exec,
         storefront: input.storefront,
-        storefrontAgentsMd: input.storefront !== undefined && input.storefrontAgentsMd === true,
+        storefrontAgentsMd: input.storefrontAgentsMd ?? false,
         serverDir: input.storefront ? SERVER_WORKSPACE_DIR : undefined,
         serverPath: input.storefront ? `${SERVER_WORKSPACE_DIR}/` : '',
         skills: input.skills,

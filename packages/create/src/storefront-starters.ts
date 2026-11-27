@@ -165,11 +165,14 @@ export async function downloadAndExtractStorefront(
 export const STOREFRONT_ROOT_ONLY_FILES: ReadonlySet<string> = new Set([
     // The workspace install writes the one lockfile, at the root.
     'package-lock.json',
-    // npm reads only the root `.npmrc` of a workspace, so this one has no effect.
+    // npm reads only the root `.npmrc` of a workspace, so this one has no effect. Its settings are
+    // not carried to the root: `ignore-scripts=true` stops the server's install scripts (bcrypt,
+    // esbuild, sharp), and `min-release-age=7` refuses the `@vendure/*` release just installed.
     '.npmrc',
     // GitHub reads workflows and templates only at the repository root.
     '.github',
-    // Claude Code reads one `.mcp.json`, which create writes at the root.
+    // Claude Code reads one `.mcp.json`, which create writes at the root. The Next.js starter's
+    // servers are not merged into it: they run unpinned packages with `bunx`, which needs bun.
     '.mcp.json',
     // husky installs its hooks only where `.git` is, so they never run from `apps/storefront`.
     '.husky',
