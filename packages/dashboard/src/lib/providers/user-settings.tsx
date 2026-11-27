@@ -295,9 +295,9 @@ export const UserSettingsProvider: React.FC<UserSettingsProviderProps> = ({ quer
                     setServerSettings(storedSettings);
                     setIsReady(true);
                 } else {
-                    // Server has no settings, use local settings. After a failed read they were never
-                    // compared with the server, so they are saved as changes from the defaults.
-                    setServerSettings(failedReadSnapshot ? { ...defaultSettings } : settings);
+                    // Server has no settings, use local settings. After a failed read, compare with the
+                    // local copy as it was at the failure, so only changes made since then are saved.
+                    setServerSettings(failedReadSnapshot ?? settings);
                     setIsReady(true);
                 }
             } catch (e) {

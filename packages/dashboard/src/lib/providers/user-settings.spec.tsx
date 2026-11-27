@@ -5,7 +5,7 @@ import { act, useContext } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { SETTINGS_STORE_KEY_USER_SETTINGS } from '../storage-keys.js';
+import { LS_KEY_USER_SETTINGS, SETTINGS_STORE_KEY_USER_SETTINGS } from '../storage-keys.js';
 import { AuthContext, AuthProvider } from './auth.js';
 import { UserSettingsContext, type UserSettingsContextType, UserSettingsProvider } from './user-settings.js';
 
@@ -201,6 +201,36 @@ describe('UserSettingsProvider', () => {
                 tableSettings: { products: { pageSize: 50, columnVisibility: { sku: false } } },
             }),
         );
+    });
+
+    // #5646 — with no stored value, a read after a failed read saves only when something changed
+    it('does not save the local settings after a failed read and an empty read until they change', async () => {
+        localStorage.setItem(LS_KEY_USER_SETTINGS, JSON.stringify({ theme: 'light' }));
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: null });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+        expect(apiMock.mutate).not.toHaveBeenCalled();
+
+        await act(async () => context.setTheme('dark'));
+        await flush();
+        expect(savedValues()).toEqual([expect.objectContaining({ theme: 'dark' })]);
+    });
+
+    it('saves a change made after a failed read when the next read finds no stored value', async () => {
+        apiMock.query.mockRejectedValue(graphQLError('Network request failed'));
+        await render();
+        await act(async () => context.setTheme('dark'));
+        await flush();
+
+        apiMock.query.mockResolvedValue({ getSettingsStoreValue: null });
+        await act(async () => queryClient.invalidateQueries());
+        await flush();
+
+        expect(context.settings.theme).toBe('dark');
+        expect(savedValues()).toEqual([expect.objectContaining({ theme: 'dark' })]);
     });
 
     // #5646 — changes made after a failed read in one session must not carry into the next one
