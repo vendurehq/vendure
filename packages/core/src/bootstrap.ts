@@ -10,12 +10,17 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
-import { satisfies } from 'semver';
+import { coerce, Range, satisfies, validRange } from 'semver';
 import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
+import { REQUEST_ID_HEADER } from './api/common/request-id';
 import { tokenMethodIncludes } from './api/common/token-method-includes';
+import { CORE_STARTUP_ERROR_CODES } from './common/error/core-startup-error-codes';
 import { InternalServerError } from './common/error/errors';
+import { writeStartupErrorEvent } from './common/error/startup-error-event';
+import { VendureStartupError } from './common/error/vendure-startup-error';
+import { writeReadyEvent } from './common/ready-event';
 import { getConfig, setConfig } from './config/config-helpers';
 import { DefaultLogger } from './config/logger/default-logger';
 import { Logger } from './config/logger/vendure-logger';
@@ -28,6 +33,7 @@ import {
     warnOnDroppedListEntries,
 } from './config/strategy-layer/strategy-chain-checks';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
+import { checkBinaryLogFormat } from './connection/check-binary-log-format';
 import { checkDatabaseTimezone } from './connection/check-database-timezone';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
@@ -215,11 +221,29 @@ export interface BootstrapWorkerOptions {
  * });
  * ```
  *
+ * If the server fails to start, `bootstrap` writes one line of JSON to stderr which names the error's code
+ * and fixes, then rethrows the error. See {@link VendureStartupError}. Once the server listens, it writes
+ * one line of JSON to stderr, `{"vendure":"event","event":"ready","process":"server",...}`, with the
+ * API URLs and the routes plugins register, so that a supervising process such as `vendure dev` can
+ * tell that it is ready. It writes this line on every start.
+ *
  * @docsCategory common
  * @docsPage bootstrap
  * @docsWeight 0
  * */
 export async function bootstrap(
+    userConfig: Partial<VendureConfig>,
+    options?: BootstrapOptions,
+): Promise<INestApplication> {
+    try {
+        return await startServer(userConfig, options);
+    } catch (e) {
+        writeStartupErrorEvent(e);
+        throw e;
+    }
+}
+
+async function startServer(
     userConfig: Partial<VendureConfig>,
     options?: BootstrapOptions,
 ): Promise<INestApplication> {
@@ -259,11 +283,14 @@ export async function bootstrap(
         app.use(mid.route, handler);
     });
     await checkDatabaseTimezone(app.get<DataSource>(getConnectionToken()), config);
+    await checkBinaryLogFormat(app.get<DataSource>(getConnectionToken()), config);
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');
     app.enableShutdownHooks();
-    logWelcomeMessage(config);
+    const serverUrls = getServerUrls(config);
+    logWelcomeMessage(config, serverUrls);
     logStartupBanner('server');
+    writeReadyEvent('server', { admin: serverUrls.admin, shop: serverUrls.shop }, serverUrls.routes);
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
 }
@@ -288,11 +315,28 @@ export async function bootstrap(
  *     process.exit(1);
  *   });
  * ```
+ *
+ * If the worker fails to start, `bootstrapWorker` writes one line of JSON to stderr which names the error's
+ * code and fixes, then rethrows the error. See {@link VendureStartupError}. Once the worker is ready, it
+ * writes `{"vendure":"event","event":"ready","process":"worker"}` to stderr, on every start.
+ *
  * @docsCategory worker
  * @docsPage bootstrapWorker
  * @docsWeight 0
  * */
 export async function bootstrapWorker(
+    userConfig: Partial<VendureConfig>,
+    options?: BootstrapWorkerOptions,
+): Promise<VendureWorker> {
+    try {
+        return await startWorker(userConfig, options);
+    } catch (e) {
+        writeStartupErrorEvent(e);
+        throw e;
+    }
+}
+
+async function startWorker(
     userConfig: Partial<VendureConfig>,
     options?: BootstrapWorkerOptions,
 ): Promise<VendureWorker> {
@@ -316,8 +360,10 @@ export async function bootstrapWorker(
     workerApp.enableShutdownHooks();
     await validateDbTablesForWorker(workerApp);
     await checkDatabaseTimezone(workerApp.get<DataSource>(getConnectionToken()), config);
+    await checkBinaryLogFormat(workerApp.get<DataSource>(getConnectionToken()), config);
     Logger.info('Vendure Worker is ready');
     logStartupBanner('worker');
+    writeReadyEvent('worker');
     await workerApp.get(EventBus).publish(new BootstrappedEvent());
     return new VendureWorker(workerApp);
 }
@@ -365,7 +411,16 @@ export async function preBootstrapConfig(
     );
     if (!customFieldValidationResult.valid) {
         process.exitCode = 1;
-        throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
+        throw new VendureStartupError({
+            code: CORE_STARTUP_ERROR_CODES.invalidCustomFields,
+            message: 'CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '),
+            fix: [
+                {
+                    description:
+                        'Correct each custom field definition listed in the message, in customFields',
+                },
+            ],
+        });
     }
     registerCustomEntityFields(config);
     setTimestampColumnTypes(config, entities);
@@ -376,6 +431,36 @@ export async function preBootstrapConfig(
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;
+}
+
+/**
+ * @description
+ * Returns whether a Vendure version satisfies a plugin's `compatibility` range. This is the
+ * check that runs at bootstrap.
+ *
+ * A prerelease version also passes when its release version (`semver.coerce`) satisfies the
+ * range. A range such as `^4.0.0` does not match `4.0.0-preview.3` or a `4.0.0-major-…` nightly
+ * by itself, because those come before `4.0.0`. A range that names a prerelease, such as
+ * `>=4.0.0-preview.5`, is checked as it is, so `4.0.0-preview.3` does not satisfy it. A range with
+ * an explicit upper bound, such as `>=3.0.0 <4.0.0`, admits `4.0.0` prereleases: use a caret or
+ * `<4.0.0-0` to refuse them.
+ *
+ * @docsCategory plugin
+ * @since 4.0.0
+ */
+export function isCompatible(version: string, range: string): boolean {
+    const options = { loose: true, includePrerelease: true };
+    if (satisfies(version, range, options)) {
+        return true;
+    }
+    const parsed = validRange(range, options) ? new Range(range, options) : undefined;
+    // A range that names a prerelease, such as `>=4.0.0-preview.5`, is about prereleases already.
+    // A `-0` bound, which is how `^4.0.0` ends (`<5.0.0-0`), only excludes prereleases.
+    const namesPrerelease = parsed?.set.some(comparators =>
+        comparators.some(({ semver }) => semver.prerelease.length > 0 && semver.prerelease.join('.') !== '0'),
+    );
+    const release = coerce(version)?.version;
+    return !namesPrerelease && release !== undefined && satisfies(release, range, options);
 }
 
 function checkPluginCompatibility(
@@ -390,7 +475,7 @@ function checkPluginCompatibility(
                 `The plugin "${pluginName}" does not specify a compatibility range, so it is not guaranteed to be compatible with this version of Vendure.`,
             );
         } else {
-            if (!satisfies(VENDURE_VERSION, compatibility, { loose: true, includePrerelease: true })) {
+            if (!isCompatible(VENDURE_VERSION, compatibility)) {
                 const compatibilityErrorMessage =
                     `Plugin "${pluginName}" is not compatible with this version of Vendure. ` +
                     `It specifies a semver range of "${compatibility}" but the current version is "${VENDURE_VERSION}".`;
@@ -403,9 +488,20 @@ function checkPluginCompatibility(
                     continue;
                 } else {
                     Logger.error(compatibilityErrorMessage);
-                    throw new InternalServerError(
-                        `Plugin "${pluginName}" is not compatible with this version of Vendure.`,
-                    );
+                    throw new VendureStartupError({
+                        code: CORE_STARTUP_ERROR_CODES.incompatiblePlugin,
+                        message: compatibilityErrorMessage,
+                        fix: [
+                            {
+                                description: `Upgrade "${pluginName}" to a version that supports Vendure ${VENDURE_VERSION}`,
+                            },
+                            {
+                                description:
+                                    `If "${pluginName}" works with this version anyway, add it to the ` +
+                                    'ignoreCompatibilityErrorsForPlugins bootstrap option',
+                            },
+                        ],
+                    });
                 }
             }
         }
@@ -480,43 +576,54 @@ export function getAllEntities(userConfig: Partial<VendureConfig>): Array<Type<a
 }
 
 /**
- * If the 'bearer' tokenMethod is being used, then we automatically expose the authTokenHeaderKey header
- * in the CORS options, making sure to preserve any user-configured exposedHeaders.
+ * Exposes the `x-request-id` header in the CORS options, so that a browser client can read the ID
+ * of its request. If the 'bearer' tokenMethod is being used, the authTokenHeaderKey header is
+ * exposed as well. Any user-configured exposedHeaders are preserved.
  */
 function setExposedHeaders(config: Readonly<RuntimeVendureConfig>) {
-    const { tokenMethod } = config.authOptions;
+    const corsOptions = config.apiOptions.cors;
+    if (typeof corsOptions === 'boolean') {
+        return;
+    }
+    const { tokenMethod, authTokenHeaderKey } = config.authOptions;
     const isUsingBearerToken =
         tokenMethod === 'bearer' || (Array.isArray(tokenMethod) && tokenMethod.includes('bearer'));
-    if (isUsingBearerToken) {
-        const authTokenHeaderKey = config.authOptions.authTokenHeaderKey;
-        const corsOptions = config.apiOptions.cors;
-        if (typeof corsOptions !== 'boolean') {
-            const { exposedHeaders } = corsOptions;
-            let exposedHeadersWithAuthKey: string[];
-            if (!exposedHeaders) {
-                exposedHeadersWithAuthKey = [authTokenHeaderKey];
-            } else if (typeof exposedHeaders === 'string') {
-                exposedHeadersWithAuthKey = exposedHeaders
-                    .split(',')
-                    .map(x => x.trim())
-                    .concat(authTokenHeaderKey);
-            } else {
-                exposedHeadersWithAuthKey = exposedHeaders.concat(authTokenHeaderKey);
-            }
-            corsOptions.exposedHeaders = exposedHeadersWithAuthKey;
-        }
-    }
+    const { exposedHeaders } = corsOptions;
+    const configuredHeaders = !exposedHeaders
+        ? []
+        : typeof exposedHeaders === 'string'
+          ? exposedHeaders.split(',').map(x => x.trim())
+          : exposedHeaders;
+    const addedHeaders = [REQUEST_ID_HEADER, ...(isUsingBearerToken ? [authTokenHeaderKey] : [])].filter(
+        header => !configuredHeaders.some(configured => configured.toLowerCase() === header.toLowerCase()),
+    );
+    corsOptions.exposedHeaders = configuredHeaders.concat(addedHeaders);
 }
 
-function logWelcomeMessage(config: RuntimeVendureConfig) {
-    const { port, shopApiPath, adminApiPath, hostname } = config.apiOptions;
-    const apiCliGreetings: Array<readonly [string, string]> = [];
+interface ServerUrls {
+    shop: string;
+    admin: string;
+    /** The routes that plugins register for the welcome message, such as the Dashboard. */
+    routes: Array<{ label: string; url: string }>;
+}
+
+function getServerUrls(config: RuntimeVendureConfig): ServerUrls {
+    const { port, hostname, shopApiPath, adminApiPath } = config.apiOptions;
     const pathToUrl = (path: string) => `http://${hostname || 'localhost'}:${port}/${path}`;
-    apiCliGreetings.push(['Shop API', pathToUrl(shopApiPath)]);
-    apiCliGreetings.push(['Admin API', pathToUrl(adminApiPath)]);
-    apiCliGreetings.push(
-        ...getPluginStartupMessages().map(({ label, path }) => [label, pathToUrl(path)] as const),
-    );
+    return {
+        shop: pathToUrl(shopApiPath),
+        admin: pathToUrl(adminApiPath),
+        routes: getPluginStartupMessages().map(({ label, path }) => ({ label, url: pathToUrl(path) })),
+    };
+}
+
+function logWelcomeMessage(config: RuntimeVendureConfig, urls: ServerUrls) {
+    const { port } = config.apiOptions;
+    const apiCliGreetings: Array<readonly [string, string]> = [
+        ['Shop API', urls.shop],
+        ['Admin API', urls.admin],
+        ...urls.routes.map(({ label, url }) => [label, url] as const),
+    ];
     const columnarGreetings = arrangeCliGreetingsInColumns(apiCliGreetings);
     const title = `Vendure server (v${VENDURE_VERSION}) now running on port ${port}`;
     const maxLineLength = Math.max(title.length, ...columnarGreetings.map(l => l.length));

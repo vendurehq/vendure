@@ -1,0 +1,57 @@
+{
+    "manifestVersion": 1,
+    "package": "@vendure-e2e/extension-cli-plugin",
+    "version": "1.0.0",
+    "commands": [],
+    "extensions": [
+        {
+            "path": ["explain"],
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "shout": {
+                        "default": false,
+                        "description": "Look the request ID up in capitals",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "output": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "extendedBy": {
+                        "type": "string",
+                        "description": "The package whose extension ran"
+                    }
+                },
+                "required": ["extendedBy"],
+                "additionalProperties": false
+            },
+            "consents": {},
+            "errors": [],
+            "cli": {
+                "fields": {}
+            }
+        },
+        {
+            "path": ["dev"],
+            "input": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                    "cloudProject": {
+                        "description": "The Console Project to deploy previews to",
+                        "type": "string"
+                    }
+                }
+            },
+            "consents": {},
+            "errors": [],
+            "cli": {
+                "fields": {}
+            }
+        }
+    ]
+}

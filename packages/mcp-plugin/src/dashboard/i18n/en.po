@@ -244,6 +244,9 @@ msgstr "Setup guide for connecting MCP clients"
 msgid "Anonymous"
 msgstr "Anonymous"
 
+msgid "Local agent"
+msgstr "Local agent"
+
 msgid "Failed calls"
 msgstr "Failed calls"
 

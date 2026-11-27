@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { JobQueue as GraphQlJobQueue } from '@vendure/common/lib/generated-types';
 
+import { runWithRequestId } from '../api/common/request-id';
 import { Instrument } from '../common';
 import { ConfigService, JobQueueStrategy, Logger } from '../config';
 
@@ -183,24 +184,26 @@ export class JobQueueService implements OnModuleDestroy {
 
     /**
      * We wrap the process function in order to catch any errors thrown and pass them to
-     * any configured ErrorHandlerStrategies.
+     * any configured ErrorHandlerStrategies. The job runs with the ID of the request which
+     * added it as the current request ID, so log lines written for the job carry that ID.
      */
     private createWrappedProcessFn<Data extends JobData<Data>>(
         processFn: (job: Job<Data>) => Promise<any>,
     ): (job: Job<Data>) => Promise<any> {
         const { errorHandlers } = this.configService.systemOptions;
-        return async (job: Job<Data>) => {
-            try {
-                return await processFn(job);
-            } catch (e) {
-                for (const handler of errorHandlers) {
-                    if (e instanceof Error) {
-                        void handler.handleWorkerError(e, { job });
+        return (job: Job<Data>) =>
+            runWithRequestId(job.requestId, async () => {
+                try {
+                    return await processFn(job);
+                } catch (e) {
+                    for (const handler of errorHandlers) {
+                        if (e instanceof Error) {
+                            void handler.handleWorkerError(e, { job });
+                        }
                     }
+                    throw e;
                 }
-                throw e;
-            }
-        };
+            });
     }
 
     private shouldStartQueue(queueName: string): boolean {

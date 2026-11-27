@@ -1,13 +1,17 @@
 import { log } from '@clack/prompts';
 import type { GraphQLTypesLoader as GraphQLTypesLoaderType } from '@nestjs/graphql';
+import type { VendureConfig } from '@vendure/core';
 import fs from 'fs-extra';
 import path from 'node:path';
 
 import { exitCliCommand, rethrowCliCommandExit } from '../../../shared/cli-command-exit.js';
-import { loadVendureConfigFile } from '../../../shared/load-vendure-config-file.js';
+import {
+    describeConfigError,
+    describeConfigSource,
+    loadProjectConfig,
+} from '../../../shared/load-project-config.js';
 import { requireFromProjectCore, requireProjectCore } from '../../../shared/project-core.js';
-import { analyzeProject } from '../../../shared/shared-prompts.js';
-import { VendureConfigRef } from '../../../shared/vendure-config-ref.js';
+import { openAnalyzedProject } from '../../../shared/shared-prompts.js';
 import { type SchemaOptions } from '../schema.js';
 
 const cancelledMessage = 'Generate schema cancelled';
@@ -28,17 +32,14 @@ export async function generateSchema(options: SchemaOptions) {
         requireFromProjectCore<typeof import('graphql')>('graphql');
     core.resetConfig();
     try {
-        const { project, vendureTsConfig } = await analyzeProject({ cancelledMessage });
-        const vendureConfig = new VendureConfigRef(project, options.config);
-        log.info('Using VendureConfig from ' + vendureConfig.getPathRelativeToProjectRoot());
-        const config = await loadVendureConfigFile(vendureConfig, vendureTsConfig);
+        const config = await loadSchemaConfig(options.config);
         await core.setConfig(config);
 
         const apiType = options.api === 'shop' ? 'shop' : 'admin';
         const typePaths =
             apiType === 'shop' ? core.VENDURE_SHOP_API_TYPE_PATHS : core.VENDURE_ADMIN_API_TYPE_PATHS;
 
-        const runtimeConfig = await core.runPluginConfigurations(core.getConfig() as any);
+        const runtimeConfig = await core.runPluginConfigurations(core.getConfig());
         const { GraphQLTypesLoader } = requireFromProjectCore<{
             GraphQLTypesLoader: new () => GraphQLTypesLoaderType;
         }>('@nestjs/graphql');
@@ -65,7 +66,21 @@ export async function generateSchema(options: SchemaOptions) {
         log.info(`Generated schema: ${outFile}`);
     } catch (e: unknown) {
         rethrowCliCommandExit(e);
-        log.error(e instanceof Error ? e.message : String(e));
+        log.error(describeConfigError(e));
         exitCliCommand(1);
     }
+}
+
+/**
+ * The project's config, from the config resolver of an enabled package, or else from the
+ * `VendureConfig` in its source. `vendure schema` is not a `defineCommand` command, so it has no
+ * signal for the resolver: a resolver it runs cannot be cancelled.
+ */
+async function loadSchemaConfig(configFile: string | undefined): Promise<VendureConfig> {
+    const loaded = await loadProjectConfig({
+        configFile,
+        openProject: openAnalyzedProject({ cancelledMessage }),
+    });
+    log.info(`Using the VendureConfig from ${describeConfigSource(loaded)}`);
+    return loaded.config;
 }

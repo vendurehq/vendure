@@ -1,0 +1,39 @@
+import { defineCloudConfig, defineVendureExtension } from '@vendure/cloud';
+import { DefaultSearchPlugin, dummyPaymentHandler } from '@vendure/core';
+import { McpPlugin } from '@vendure/mcp-plugin';
+import { randomBytes } from 'node:crypto';
+
+// The store's own plugins and migrations. The first `vendure dev` writes the initial migration
+// into ./migrations and runs it. Commit it, together with every later migration.
+//
+// The glob has no file extension, so it finds the TypeScript migrations when run from source and
+// the JavaScript ones a build emits.
+const store = defineVendureExtension({
+    id: 'store',
+    plugins: [DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true })],
+    migrations: ['./migrations/*'],
+});
+
+export const config = defineCloudConfig({
+    paymentOptions: {
+        paymentMethodHandlers: [dummyPaymentHandler],
+    },
+    plugins: [
+        store,
+        // Lets AI agents use the Admin and Shop APIs. `vendure dev` trusts the local `vendure mcp`
+        // server, so no sign-in is needed while you develop.
+        McpPlugin.init({
+            oauth: {
+                // Both are required in production. MCP_TOKEN_SECRET hashes the OAuth tokens the
+                // plugin issues; without it, a non-production process uses a random secret, so
+                // issued tokens stop working when the server restarts.
+                // MCP_ISSUER is the server's public https origin, and defaults to localhost.
+                tokenSecret:
+                    process.env.MCP_TOKEN_SECRET ??
+                    (process.env.NODE_ENV === 'production' ? '' : randomBytes(32).toString('hex')),
+                issuer: process.env.MCP_ISSUER,
+            },
+            shopAccess: 'anonymous',
+        }),
+    ],
+});

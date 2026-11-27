@@ -5,7 +5,6 @@ import { populate } from '@vendure/core/cli/populate';
 import { clearAllTables, populateCustomers, SimpleGraphQLClient } from '@vendure/testing';
 import { stringify } from 'csv-stringify';
 import fs from 'fs';
-import path from 'path';
 
 import { initialData } from '../../core/mock-data/data-sources/initial-data';
 
@@ -47,7 +46,7 @@ if (require.main === module) {
                                     await app.get(JobQueueService).start();
                                     return app;
                                 }),
-                            path.join(__dirname, '../../create/assets/initial-data.json'),
+                            initialData,
                             csvFile,
                         ),
                     )

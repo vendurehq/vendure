@@ -4,6 +4,7 @@ import { isObject } from '@vendure/common/lib/shared-utils';
 import { from, interval, race, Subject, Subscription } from 'rxjs';
 import { filter, switchMap, take, throttleTime } from 'rxjs/operators';
 
+import { runWithRequestId } from '../api/common/request-id';
 import { Logger } from '../config/logger/vendure-logger';
 
 import { InjectableJobQueueStrategy } from './injectable-job-queue-strategy';
@@ -197,37 +198,41 @@ class ActiveQueue<Data extends JobData<Data> = object> {
                             });
                         const stopSignal$ = this.queueStopped$.pipe(take(1));
 
-                        race(from(this.process(nextJob)), stopSignal$)
-                            .toPromise()
-                            .then(
-                                result => {
-                                    if (result === STOP_SIGNAL) {
-                                        nextJob.defer();
-                                    } else if (
-                                        nextJob.state === JobState.CANCELLED ||
-                                        (result instanceof Job && result.state === JobState.CANCELLED)
-                                    ) {
-                                        nextJob.cancel();
-                                    } else {
-                                        nextJob.complete(result);
-                                    }
-                                },
-                                err => {
-                                    nextJob.fail(err);
-                                },
-                            )
-                            .finally(() => {
-                                // if (!this.running && nextJob.state !== JobState.PENDING) {
-                                //     return;
-                                // }
-                                nextJob.off('progress', onProgress);
-                                cancellationSub.unsubscribe();
-                                return this.onFailOrComplete(nextJob);
-                            })
-                            .catch((err: any) => {
-                                Logger.warn(`Error updating job info: ${err?.message}`);
-                                Logger.debug(err?.stack);
-                            });
+                        // The handlers below are registered with the job's request ID as the current
+                        // one, so the log lines written when the job completes or fails carry it.
+                        void runWithRequestId(nextJob.requestId, () =>
+                            race(from(this.process(nextJob)), stopSignal$)
+                                .toPromise()
+                                .then(
+                                    result => {
+                                        if (result === STOP_SIGNAL) {
+                                            nextJob.defer();
+                                        } else if (
+                                            nextJob.state === JobState.CANCELLED ||
+                                            (result instanceof Job && result.state === JobState.CANCELLED)
+                                        ) {
+                                            nextJob.cancel();
+                                        } else {
+                                            nextJob.complete(result);
+                                        }
+                                    },
+                                    err => {
+                                        nextJob.fail(err);
+                                    },
+                                )
+                                .finally(() => {
+                                    // if (!this.running && nextJob.state !== JobState.PENDING) {
+                                    //     return;
+                                    // }
+                                    nextJob.off('progress', onProgress);
+                                    cancellationSub.unsubscribe();
+                                    return this.onFailOrComplete(nextJob);
+                                })
+                                .catch((err: any) => {
+                                    Logger.warn(`Error updating job info: ${err?.message}`);
+                                    Logger.debug(err?.stack);
+                                }),
+                        );
                     }
                 }
             } catch (e: any) {

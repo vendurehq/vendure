@@ -3,6 +3,7 @@ import {
     Channel,
     ChannelNotFoundError,
     ChannelService,
+    ConfigService,
     EntityNotFoundError,
     ForbiddenError,
     InternalServerError,
@@ -28,7 +29,9 @@ type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;
 @McpTool({
     name: 'set_active_channel',
     toolset: 'admin',
-    description: 'Set the active channel for this MCP grant by channel token.',
+    description:
+        'Set the active channel for this MCP grant by channel token. Under local trust the server ' +
+        'keeps no state: send the returned channelToken in the returned channelTokenHeader on later calls.',
     keywords: [
         'switch to another store',
         'change the active channel',
@@ -48,21 +51,27 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
         private readonly channelService: ChannelService,
         private readonly connection: TransactionalConnection,
         private readonly serializer: McpToolSerializerService,
+        private readonly configService: ConfigService,
     ) {}
 
+    async describe(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
+        const channel = await this.findAccessibleChannel(ctx, input);
+        const scope = caller?.localTrust
+            ? 'for the calls that send its token'
+            : 'for every later call on this MCP grant';
+        return `Switch the active channel to ${channel.code} (id ${String(channel.id)}) ${scope}.`;
+    }
+
     async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
-        let channel: Channel;
-        try {
-            channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
-        } catch (e) {
-            if (!(e instanceof ChannelNotFoundError)) throw e;
-            throw new UserInputError(
-                `No channel with token "${input.channelToken}". Call list_channels for the tokens ` +
-                    'you can use.',
-            );
-        }
-        if (!userCanAccessChannel(ctx, channel.id)) {
-            throw new ForbiddenError();
+        const channel = await this.findAccessibleChannel(ctx, input);
+        // A local-trust call has no grant to store the channel on. The Developer MCP keeps the
+        // channel per session and sends its token with each call, in the header this server reads.
+        if (caller?.localTrust) {
+            return {
+                channel: this.serializer.channel(channel),
+                channelToken: channel.token,
+                channelTokenHeader: this.configService.apiOptions.channelTokenKey,
+            };
         }
         // Update only channelId so a concurrent token refresh cannot overwrite rotated hashes.
         if (!caller?.grant) {
@@ -77,5 +86,22 @@ export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInpu
             throw new EntityNotFoundError('McpOauthGrant', caller.grant.id);
         }
         return { channel: this.serializer.channel(channel) };
+    }
+
+    private async findAccessibleChannel(ctx: RequestContext, input: SetActiveChannelInput): Promise<Channel> {
+        let channel: Channel;
+        try {
+            channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
+        } catch (e) {
+            if (!(e instanceof ChannelNotFoundError)) throw e;
+            throw new UserInputError(
+                `No channel with token "${input.channelToken}". Call list_channels for the tokens ` +
+                    'you can use.',
+            );
+        }
+        if (!userCanAccessChannel(ctx, channel.id)) {
+            throw new ForbiddenError();
+        }
+        return channel;
     }
 }

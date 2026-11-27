@@ -35,7 +35,8 @@
         "@vendure/asset-server-plugin": "3.8.2",
         "@vendure/common": "3.8.2",
         "@vendure/core": "3.8.2",
-        "@vendure/email-plugin": "3.8.2"
+        "@vendure/email-plugin": "3.8.2",
+        "@vendure/mcp-plugin": "3.8.2"
     },
     "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260515.1",

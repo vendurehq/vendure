@@ -76,12 +76,12 @@ export function ZoneCountriesTable({
     return (
         <DataTable
             columns={columns as any}
-            data={paginatedItems ?? []}
+            data={paginatedItems}
             onPageChange={(table, page, itemsPerPage) => {
                 setPage(page);
                 setPageSize(itemsPerPage);
             }}
-            totalItems={data?.zone?.members?.length ?? 0}
+            totalItems={data?.zone?.members?.length ?? null}
             bulkActions={bulkActions}
             title={title}
             actions={

@@ -57,8 +57,14 @@ export class StockLocationResolver {
     @Mutation()
     @Transaction()
     @Allow(Permission.DeleteStockLocation)
-    deleteStockLocations(@Ctx() ctx: RequestContext, @Args() args: MutationDeleteStockLocationsArgs) {
-        return Promise.all(args.input.map(input => this.stockLocationService.delete(ctx, input)));
+    async deleteStockLocations(@Ctx() ctx: RequestContext, @Args() args: MutationDeleteStockLocationsArgs) {
+        // One after another: concurrent writes in one transaction share its database connection, and
+        // on Postgres their savepoints then fail with "savepoint does not exist".
+        const results: Array<Awaited<ReturnType<StockLocationService['delete']>>> = [];
+        for (const input of args.input) {
+            results.push(await this.stockLocationService.delete(ctx, input));
+        }
+        return results;
     }
 
     @Mutation()

@@ -1,0 +1,199 @@
+---
+title: "vendure devserver"
+generated: true
+---
+
+
+<a name="devserver-logs"></a>
+
+## vendure devserver logs
+
+Read the logs of the vendure dev run, filtered by time, request ID or severity.
+
+```bash
+vendure devserver logs [options]
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `devserver_logs`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--since <since>` | string | Only lines since a duration ago, such as 15m or 2h, or since an ISO 8601 instant. |
+| `--request <request>` | string | Only lines of the request with this ID. |
+| `--min-severity <min-severity>` | `"error"` or `"warn"` or `"info"` or `"verbose"` or `"debug"` | Only lines at this level or a more severe one: error, warn, info, verbose, debug. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `lines` | array of object | The newest 1000 lines that pass the filters, oldest first. |
+| `omitted` | number | How many older lines that pass the filters were left out. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.invalid-since` (exit code 2)
+
+### Examples
+
+```bash
+vendure devserver logs --since 15m --min-severity warn
+vendure devserver logs --request 2b0c6c2e-5f6a-4a0e-9d1b-7f0d3c1e8a42 --json
+```
+
+<a name="devserver-start"></a>
+
+## vendure devserver start
+
+Start vendure dev in the background for this project.
+
+```bash
+vendure devserver start [target] [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `devserver_start`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `[target]`, `--target <target>` | `"all"` or `"server"` | What to run: all, or the server only (default: all). |
+| `--wait`, `--no-wait` | boolean | Wait until the run is ready or failed, instead of returning once it has started. Defaults to true, or false when called as an MCP tool. |
+| `--timeout <timeout>` | number | How many seconds to wait. Defaults to 120, or 30 when called as an MCP tool. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `status` | `"starting"` or `"ready"` or `"restarting"` or `"failed"` or `"stopped"` |  |
+| `urls` | object |  |
+| `startedAt` | string or null | When the run started, or null when none has run. |
+| `restarts` | number | How many times a file change restarted the processes. |
+| `lastError` | object or null | Why the run is failed. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+- `devserver.already-running` (exit code 1)
+- `devserver.start-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure devserver start
+vendure devserver start server --timeout 60
+```
+
+<a name="devserver-status"></a>
+
+## vendure devserver status
+
+Show the status, URLs and last error of the vendure dev run serving this project.
+
+```bash
+vendure devserver status
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `devserver_status`
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `status` | `"starting"` or `"ready"` or `"restarting"` or `"failed"` or `"stopped"` |  |
+| `urls` | object |  |
+| `startedAt` | string or null | When the run started, or null when none has run. |
+| `restarts` | number | How many times a file change restarted the processes. |
+| `lastError` | object or null | Why the run is failed. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+
+### Examples
+
+```bash
+vendure devserver status
+vendure devserver status --json
+```
+
+<a name="devserver-stop"></a>
+
+## vendure devserver stop
+
+Stop the vendure dev run serving this project.
+
+```bash
+vendure devserver stop
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `devserver_stop`
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `wasRunning` | boolean | False when no run was serving the project. |
+| `stopped` | boolean |  |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+
+### Examples
+
+```bash
+vendure devserver stop
+```
+
+<a name="devserver-wait"></a>
+
+## vendure devserver wait
+
+Wait until the vendure dev run is ready. Returns at once when it failed.
+
+```bash
+vendure devserver wait [options]
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `devserver_wait`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--until <until>` | `"ready"` | The status to wait for (default: ready). |
+| `--timeout <timeout>` | number | How many seconds to wait. Defaults to 120, or 30 when called as an MCP tool. |
+| `--after-restarts <after-restarts>` | number | Count ready or failed only once the run has restarted this many times. Pass the restarts that status reported before an edit plus 1 to wait for the restart it causes. |
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `status` | `"starting"` or `"ready"` or `"restarting"` or `"failed"` or `"stopped"` |  |
+| `urls` | object |  |
+| `startedAt` | string or null | When the run started, or null when none has run. |
+| `restarts` | number | How many times a file change restarted the processes. |
+| `lastError` | object or null | Why the run is failed. |
+| `timedOut` | boolean | True when the timeout passed before the run was ready or failed. |
+
+### Errors
+
+- `devserver.project-not-found` (exit code 1)
+- `devserver.state-file-unavailable` (exit code 1)
+
+### Examples
+
+```bash
+vendure devserver wait --until ready --timeout 60 --json
+```

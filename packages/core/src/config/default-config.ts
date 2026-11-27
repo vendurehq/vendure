@@ -3,6 +3,7 @@ import {
     DEFAULT_APIKEY_HEADER_KEY,
     DEFAULT_AUTH_TOKEN_HEADER_KEY,
     DEFAULT_CHANNEL_TOKEN_KEY,
+    INCLUDE_STACK_IN_ERRORS_ENV_VAR,
     SUPER_ADMIN_USER_IDENTIFIER,
     SUPER_ADMIN_USER_PASSWORD,
 } from '@vendure/common/lib/shared-constants';
@@ -47,6 +48,7 @@ import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-or
 import { DefaultOrderPlacedStrategy } from './order/default-order-placed-strategy';
 import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
+import { DefaultPromotionFreezeStrategy } from './order/default-promotion-freeze-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
 import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
@@ -98,6 +100,8 @@ export const defaultConfig: RuntimeVendureConfig = {
         trustProxy: false,
         middleware: [],
         introspection: true,
+        // `vendure dev` sets the variable for the server it starts. A value in the project's config wins.
+        includeStackInErrors: process.env[INCLUDE_STACK_IN_ERRORS_ENV_VAR] === 'true',
         apolloServerPlugins: [],
     },
     authOptions: {
@@ -194,6 +198,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
         orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
+        promotionFreezeStrategy: new DefaultPromotionFreezeStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],

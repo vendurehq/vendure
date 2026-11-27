@@ -79,12 +79,12 @@ export async function pluginsCommand(
     // Actions run before --json is considered, so `plugins add <pkg> --json`
     // performs the write and then prints the updated state.
     if (normalizedAction === 'add') {
-        addPlugin(requirePackageName(normalizedAction, packageName), options);
+        await addPlugin(requirePackageName(normalizedAction, packageName), options);
         return;
     }
 
     if (normalizedAction === 'remove') {
-        removePlugin(requirePackageName(normalizedAction, packageName), options);
+        await removePlugin(requirePackageName(normalizedAction, packageName), options);
         return;
     }
 
@@ -104,16 +104,33 @@ export async function pluginsCommand(
     }
 
     if (options.json) {
-        printJson(discoverCliPlugins({ validate: true }));
+        printJson(await listPlugins());
         return;
     }
 
     if (isNonInteractiveEnvironment()) {
-        printTextList(discoverCliPlugins({ validate: true }));
+        printTextList(await listPlugins());
         return;
     }
 
     await runInteractiveManager();
+}
+
+/**
+ * The discovered plugins, validated, with the reason for each package whose `defineCommand`
+ * commands the merge refuses, such as a clash, so the list agrees with `vendure commands`.
+ */
+async function listPlugins(): Promise<DiscoveredCliPlugin[]> {
+    const discovered = discoverCliPlugins({ validate: true });
+    const { loadProjectCommands } = await import('../../command-host/manifest.js');
+    const { refused } = await loadProjectCommands();
+    return discovered.map(plugin => {
+        const refusal = refused.find(entry => entry.package === plugin.packageName);
+        if (!refusal || plugin.status !== 'enabled' || plugin.manifestReason) {
+            return plugin;
+        }
+        return { ...plugin, manifestReason: `[${refusal.error.code}] ${refusal.error.message}` };
+    });
 }
 
 function requirePackageName(action: string, packageName: string | undefined): string {
@@ -126,7 +143,7 @@ function requirePackageName(action: string, packageName: string | undefined): st
     return name;
 }
 
-function addPlugin(packageName: string, options: PluginsCommandOptions): void {
+async function addPlugin(packageName: string, options: PluginsCommandOptions): Promise<void> {
     const scope = resolveTargetScope(options);
     assertPackageCanBeEnabled(packageName, scope);
     const written =
@@ -136,7 +153,7 @@ function addPlugin(packageName: string, options: PluginsCommandOptions): void {
     log.success(`Enabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
     log.info(`Wrote ${written}`);
     if (options.json) {
-        printJson(discoverCliPlugins({ validate: true }));
+        printJson(await listPlugins());
     }
 }
 
@@ -145,7 +162,7 @@ function scopeSuffix(scope: CliPluginScopeKind): string {
     return scope === 'global' ? 'for this machine' : 'for this project';
 }
 
-function removePlugin(packageName: string, options: PluginsCommandOptions): void {
+async function removePlugin(packageName: string, options: PluginsCommandOptions): Promise<void> {
     const scope = resolveTargetScope(options);
     const enabled = readEnabledPlugins(scope.kind);
 
@@ -194,7 +211,7 @@ function removePlugin(packageName: string, options: PluginsCommandOptions): void
     log.success(`Disabled CLI plugin ${pc.cyan(packageName)} ${scopeSuffix(scope.kind)}`);
     log.info(`Wrote ${written}`);
     if (options.json) {
-        printJson(discoverCliPlugins({ validate: true }));
+        printJson(await listPlugins());
     }
 }
 
@@ -233,7 +250,7 @@ async function runInteractiveManager(): Promise<void> {
 
     const discovered = discoverCliPlugins({ validate: true });
     if (discovered.length === 0) {
-        log.info('No installed package declares a vendure.cliPlugin entry.');
+        log.info('No installed package declares a vendure.cliPlugin or vendure.commandManifest entry.');
         return;
     }
 
@@ -364,7 +381,12 @@ function printTextList(plugins: DiscoveredCliPlugin[]): void {
         return;
     }
     for (const plugin of plugins) {
-        const detail = plugin.status === 'failed' && plugin.reason ? ` — ${plugin.reason}` : '';
+        const detail =
+            plugin.status === 'failed' && plugin.reason
+                ? ` — ${plugin.reason}`
+                : plugin.manifestReason
+                  ? ` — its defineCommand commands are not loaded: ${plugin.manifestReason}`
+                  : '';
         process.stdout.write(`${plugin.packageName}\t${plugin.scope}\t${plugin.status}${detail}\n`);
         const commands = cliPluginCommandNames(plugin);
         if (commands.length > 0) {
@@ -385,8 +407,9 @@ function printJson(plugins: DiscoveredCliPlugin[]): void {
                     status: plugin.status,
                     reason: plugin.reason,
                     entryPath: plugin.entryPath,
-                    declaredCommands: plugin.declaredCommands,
-                    loadedCommands: plugin.loadedCommands,
+                    manifestPath: plugin.manifestPath,
+                    manifestCommands: plugin.manifestCommands,
+                    manifestReason: plugin.manifestReason,
                 })),
             },
             null,

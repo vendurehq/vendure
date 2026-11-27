@@ -15,5 +15,7 @@ type Channel implements Node {
     "The stock level below which a ProductVariant with `useGlobalOutOfStockThreshold` may not be sold in this Channel. Since 4.0.0"
     outOfStockThreshold: Int
     pricesIncludeTax: Boolean!
+    "The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"
+    taxCountryCode: String
     seller: Seller
 }

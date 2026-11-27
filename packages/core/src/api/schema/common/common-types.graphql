@@ -258,6 +258,31 @@ type ShippingMethodQuote {
     description: String!
     "Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult"
     metadata: JSON
+    """
+    Every ShippingOption offered by this ShippingMethod, cheapest first. A ShippingCalculator which
+    returns a single result yields one option, with the `code` the calculator gave it, or null if it
+    gave none. The `price`, `priceWithTax` and `metadata` fields above are those of the cheapest option.
+    """
+    options: [ShippingOptionQuote!]!
+}
+
+"""
+One priced option offered by a ShippingMethod, such as a carrier service ("UPS Ground",
+"UPS Next Day Air") returned by a carrier API.
+"""
+type ShippingOptionQuote {
+    "Identifies the option within its ShippingMethod. Pass it as `shippingOptionCode` to select this option."
+    code: String
+    name: String
+    price: Money!
+    priceWithTax: Money!
+    metadata: JSON
+}
+
+input ShippingMethodSelectionInput {
+    shippingMethodId: ID!
+    "The `code` of one of the ShippingMethod's options. If omitted, the cheapest option is used."
+    shippingOptionCode: String
 }
 
 type PaymentMethodQuote {

@@ -1,24 +1,14 @@
-import { cancel, isCancel, multiselect, spinner, text } from '@clack/prompts';
 import path from 'path';
 import { ClassDeclaration, SourceFile } from 'ts-morph';
 
-
-import { pascalCaseRegex } from '../../../constants.js';
-import { exitCliCommand } from '../../../shared/cli-command-exit.js';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
 import { EntityRef } from '../../../shared/entity-ref.js';
-import { analyzeProject, selectPlugin } from '../../../shared/shared-prompts.js';
 import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
-import { createFile, getPluginClasses } from '../../../utilities/ast-utils.js';
-import { kebabCase, pascalCase } from '../../../utilities/case-utils.js';
-import { pauseForPromptDisplay, withInteractiveTimeout } from '../../../utilities/utils.js';
+import { createFile } from '../../../utilities/ast-utils.js';
+import { kebabCase } from '../../../utilities/case-utils.js';
 
 import { addEntityToPlugin } from './codemods/add-entity-to-plugin/add-entity-to-plugin.js';
 
-const cancelledMessage = 'Add entity cancelled';
-
 export interface AddEntityOptions {
-    plugin?: VendurePluginRef;
     className: string;
     fileName: string;
     translationFileName: string;
@@ -26,137 +16,39 @@ export interface AddEntityOptions {
         customFields: boolean;
         translatable: boolean;
     };
-    config?: string;
-    isNonInteractive?: boolean;
-    pluginName?: string;
-    customFields?: boolean;
-    translatable?: boolean;
 }
 
-export const addEntityCommand = new CliCommand({
-    id: 'add-entity',
-    category: 'Plugin: Entity',
-    description: 'Add a new entity to a plugin',
-    run: options => addEntity(options),
-});
-
-export async function addEntity(
-    options?: Partial<AddEntityOptions>,
-): Promise<CliCommandReturnVal<{ entityRef: EntityRef }>> {
-    const providedVendurePlugin = options?.plugin;
-    const { project } = await analyzeProject({
-        providedVendurePlugin,
-        cancelledMessage,
-        config: options?.config,
+/**
+ * Creates an entity class, and its translation class when it is translatable, and adds them to
+ * the plugin's `entities`. It prints nothing and does not save.
+ */
+export function scaffoldEntity(
+    plugin: VendurePluginRef,
+    className: string,
+    features: AddEntityOptions['features'],
+): { entityRef: EntityRef; created: SourceFile[]; edited: SourceFile[] } {
+    const { entityClass, translationClass } = createEntity(plugin, {
+        className,
+        fileName: kebabCase(className) + '.entity',
+        translationFileName: kebabCase(className) + '-translation.entity',
+        features,
     });
-
-    let vendurePlugin = providedVendurePlugin;
-
-    // If pluginName is provided (from CLI), find the plugin by name
-    if (options?.pluginName && !vendurePlugin) {
-        const pluginClasses = getPluginClasses(project);
-        const pluginClass = pluginClasses.find((p: ClassDeclaration) => p.getName() === options.pluginName);
-        if (!pluginClass) {
-            const availablePlugins = pluginClasses.map((p: ClassDeclaration) => p.getName()).join(', ');
-            throw new Error(
-                `Plugin "${options.pluginName}" not found. Available plugins: ${availablePlugins}`,
-            );
-        }
-        vendurePlugin = new VendurePluginRef(pluginClass);
+    addEntityToPlugin(plugin, entityClass);
+    const created = [entityClass.getSourceFile()];
+    if (features.translatable) {
+        addEntityToPlugin(plugin, translationClass);
+        created.push(translationClass.getSourceFile());
     }
-
-    // In non-interactive mode with no plugin specified after checking for pluginName, we cannot proceed
-    if (options?.isNonInteractive && !vendurePlugin) {
-        throw new Error(
-            'Plugin must be specified when running in non-interactive mode. Usage: vendure add -e <entity-name> --selected-plugin <plugin-name>',
-        );
-    }
-
-    vendurePlugin = vendurePlugin ?? (await selectPlugin(project, cancelledMessage));
-    const modifiedSourceFiles: SourceFile[] = [];
-
-    const customEntityName = options?.className ?? (await getCustomEntityName(cancelledMessage));
-
-    const context: AddEntityOptions = {
-        className: customEntityName,
-        fileName: kebabCase(customEntityName) + '.entity',
-        translationFileName: kebabCase(customEntityName) + '-translation.entity',
-        features: await getFeatures(options),
-        config: options?.config,
-    };
-
-    const entitySpinner = spinner();
-    entitySpinner.start('Creating entity...');
-    await pauseForPromptDisplay();
-
-    const { entityClass, translationClass } = createEntity(vendurePlugin, context);
-    addEntityToPlugin(vendurePlugin, entityClass);
-    modifiedSourceFiles.push(entityClass.getSourceFile());
-    if (context.features.translatable) {
-        addEntityToPlugin(vendurePlugin, translationClass);
-        modifiedSourceFiles.push(translationClass.getSourceFile());
-    }
-
-    entitySpinner.stop('Entity created');
-
-    await project.save();
-
     return {
-        project,
-        modifiedSourceFiles,
         entityRef: new EntityRef(entityClass),
+        created,
+        edited: [plugin.classDeclaration.getSourceFile()],
     };
 }
 
-async function getFeatures(options?: Partial<AddEntityOptions>): Promise<AddEntityOptions['features']> {
-    if (options?.features) {
-        return options?.features;
-    }
-
-    // Handle non-interactive mode with explicit feature flags
-    if (options?.isNonInteractive) {
-        return {
-            customFields: options?.customFields ?? false,
-            translatable: options?.translatable ?? false,
-        };
-    }
-
-    // Default features for non-interactive mode when not specified
-    if (options?.className && !options?.features) {
-        return {
-            customFields: true,
-            translatable: false,
-        };
-    }
-
-    const features = await withInteractiveTimeout(async () => {
-        return await multiselect({
-            message: 'Entity features (use ↑, ↓, space to select)',
-            required: false,
-            initialValues: ['customFields'],
-            options: [
-                {
-                    label: 'Custom fields',
-                    value: 'customFields',
-                    hint: 'Adds support for custom fields on this entity',
-                },
-                {
-                    label: 'Translatable',
-                    value: 'translatable',
-                    hint: 'Adds support for localized properties on this entity',
-                },
-            ],
-        });
-    });
-
-    if (isCancel(features)) {
-        cancel(cancelledMessage);
-        exitCliCommand(0);
-    }
-    return {
-        customFields: features.includes('customFields'),
-        translatable: features.includes('translatable'),
-    };
+/** The path of the entity file `scaffoldEntity` writes. */
+export function entityFilePath(plugin: VendurePluginRef, className: string): string {
+    return path.join(plugin.getPluginDir().getPath(), 'entities', `${kebabCase(className)}.entity.ts`);
 }
 
 function createEntity(plugin: VendurePluginRef, options: AddEntityOptions) {
@@ -227,24 +119,4 @@ function removeImplementsFromClass(implementsName: string, entityClass?: ClassDe
     if (index > -1) {
         entityClass?.removeImplements(index);
     }
-}
-
-export async function getCustomEntityName(_cancelledMessage: string) {
-    const entityName = await text({
-        message: 'What is the name of the custom entity?',
-        initialValue: '',
-        validate: input => {
-            if (!input) {
-                return 'The custom entity name cannot be empty';
-            }
-            if (!pascalCaseRegex.test(input)) {
-                return 'The custom entity name must be in PascalCase, e.g. "ProductReview"';
-            }
-        },
-    });
-    if (isCancel(entityName)) {
-        cancel(_cancelledMessage);
-        exitCliCommand(0);
-    }
-    return pascalCase(entityName);
 }

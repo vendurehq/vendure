@@ -1,0 +1,24 @@
+---
+title: "LogMeta"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/logger/vendure-logger.ts" sourceLine="48" packageName="@vendure/core" since="4.0.0" />
+
+Structured data about a log message, passed as the last argument of the [VendureLogger](/reference/typescript-api/logger/vendure-logger#vendurelogger)methods. A logger which has no use for it can ignore it.
+
+```ts title="Signature"
+interface LogMeta {
+    code?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+The code of the error which the message reports.
+
+
+</div>

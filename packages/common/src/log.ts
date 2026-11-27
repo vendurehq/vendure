@@ -1,0 +1,89 @@
+import type { Fix } from './command/types';
+
+/**
+ * The names of the log levels, from the most severe to the least severe.
+ */
+export const LOG_LEVEL_NAMES = ['error', 'warn', 'info', 'verbose', 'debug'] as const;
+
+/**
+ * The name of a log level, as written in the `level` field of a {@link LogLine}.
+ */
+export type LogLevelName = (typeof LOG_LEVEL_NAMES)[number];
+
+/**
+ * One structured log line, as written by the JSON format of the `DefaultLogger` of
+ * `@vendure/core`. Each line of a JSON log is one `LogLine` object.
+ *
+ * Optional fields are left out of the line when they have no value.
+ */
+export interface LogLine {
+    /**
+     * The time the line was written, as an ISO 8601 string in UTC.
+     */
+    ts: string;
+    level: LogLevelName;
+    /**
+     * The context of the line, usually the name of the class or plugin which wrote it.
+     */
+    ctx?: string;
+    msg: string;
+    /**
+     * The name of the process which wrote the line, for example `server` or `worker`.
+     */
+    process?: string;
+    /**
+     * The ID of the API request during which the line was written. A line written while a
+     * worker processes a job carries the ID of the request which added the job.
+     */
+    requestId?: string;
+    /**
+     * The namespaced code of the error which the line reports, for example `core.forbidden`. It is
+     * the same value as `extensions.vendureCode` of the GraphQL error.
+     */
+    code?: string;
+    stack?: string;
+}
+
+/**
+ * The line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core` write to stderr, as one
+ * line of JSON, when the server or worker fails to start. A supervising process such as
+ * `vendure dev` reads the code and the fixes from it.
+ */
+export interface StartupErrorEvent {
+    vendure: 'event';
+    event: 'startup-error';
+    /** The namespaced code of the error, for example `core.config.invalid-custom-fields`. */
+    code: string;
+    message: string;
+    /** Ways to fix the error. A fix that is a command also names its `path` and `input`. */
+    fix: Fix[];
+}
+
+/**
+ * The line which `bootstrap()` and `bootstrapWorker()` of `@vendure/core` write to stderr, as one
+ * line of JSON, once the server is listening or the worker is ready. A supervising process such as
+ * `vendure dev` reads readiness and the API URLs from it, so it does not depend on the log level.
+ */
+export interface ReadyEvent {
+    vendure: 'event';
+    event: 'ready';
+    /** Which process is ready. */
+    process: 'server' | 'worker';
+    /** The URLs the server serves. The worker's line has none. */
+    urls?: {
+        admin: string;
+        shop: string;
+    };
+    /**
+     * The routes that plugins register, as the server's welcome message names them, for example
+     * `{ label: 'Dashboard UI', url: 'http://localhost:3000/dashboard' }`.
+     */
+    routes?: Array<{ label: string; url: string }>;
+}
+
+/**
+ * The start of the line which the McpPlugin logs when the server starts, followed by the URL of
+ * its admin endpoint, for example `Store MCP admin endpoint: http://localhost:3000/mcp/admin`.
+ * `vendure dev` reads the URL from this line.
+ */
+export const MCP_ADMIN_ENDPOINT_LOG_PREFIX = 'Store MCP admin endpoint: ';

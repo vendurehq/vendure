@@ -28,7 +28,7 @@ const LOGIN_MUTATION =
 
 interface GraphQlResponseBody {
     data: { login: { identifier: string } };
-    errors: Array<{ extensions: { code: string; stacktrace?: unknown } }>;
+    errors: Array<{ extensions: { code: string; stacktrace?: unknown; stack?: string[] } }>;
 }
 
 function post(contentType: string, body: string, extraHeaders: Record<string, string> = {}) {
@@ -171,6 +171,7 @@ describe('apiOptions.csrfPrevention', () => {
             expect(res.status).toBe(400);
             expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
             expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+            expect(body.errors[0].extensions.stack).toBeUndefined();
         });
 
         for (const [apiName, url] of [
@@ -188,6 +189,7 @@ describe('apiOptions.csrfPrevention', () => {
                 expect(res.status).toBe(400);
                 expect(body.errors[0].extensions.code).toBe('BAD_REQUEST');
                 expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+                expect(body.errors[0].extensions.stack).toBeUndefined();
             });
 
             it(`omits the stack trace from a resolver error (${apiName} API)`, async () => {
@@ -201,6 +203,7 @@ describe('apiOptions.csrfPrevention', () => {
 
                 expect(body.errors[0].extensions.code).toBe('FORBIDDEN');
                 expect(body.errors[0].extensions.stacktrace).toBeUndefined();
+                expect(body.errors[0].extensions.stack).toBeUndefined();
             });
         }
     });
@@ -245,4 +248,48 @@ describe('apiOptions.csrfPrevention with custom request headers', () => {
         expect(res.status).toBe(400);
         expect(await res.text()).toContain('Cross-Site Request Forgery');
     });
+});
+
+/**
+ * Sends an anonymous `me` query, which the auth guard rejects during execution.
+ */
+async function getResolverError(url: string) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query: '{ me { id } }' }),
+    });
+    return ((await res.json()) as GraphQlResponseBody).errors[0];
+}
+
+describe('apiOptions.includeStackInErrors, by default with NODE_ENV unset', () => {
+    const { server } = createTestEnvironment(config);
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    beforeAll(async () => {
+        delete process.env.NODE_ENV;
+        await server.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-minimal.csv'),
+            customerCount: 1,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+        process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    for (const [apiName, url] of [
+        ['admin', ADMIN_URL],
+        ['shop', SHOP_URL],
+    ]) {
+        it(`omits the stack from a resolver error (${apiName} API)`, async () => {
+            const error = await getResolverError(url);
+
+            expect(error.extensions.code).toBe('FORBIDDEN');
+            expect(error.extensions.stack).toBeUndefined();
+            expect(error.extensions.stacktrace).toBeUndefined();
+        });
+    }
 });

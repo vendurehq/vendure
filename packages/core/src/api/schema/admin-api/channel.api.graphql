@@ -37,6 +37,8 @@ input CreateChannelInput {
     outOfStockThreshold: Int
     defaultTaxZoneId: ID!
     defaultShippingZoneId: ID!
+    "The code of the country whose tax rate the Channel's tax-inclusive prices include. Since 4.0.0"
+    taxCountryCode: String
     sellerId: ID
 }
 
@@ -53,6 +55,8 @@ input UpdateChannelInput {
     outOfStockThreshold: Int
     defaultTaxZoneId: ID
     defaultShippingZoneId: ID
+    "The code of the country whose tax rate the Channel's tax-inclusive prices include. Set it to null to clear it. Since 4.0.0"
+    taxCountryCode: String
     sellerId: ID
 }
 

@@ -4,6 +4,7 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { TaxCategory } from '../../entity/tax-category/tax-category.entity';
+import { TaxRate } from '../../entity/tax-rate/tax-rate.entity';
 import { Zone } from '../../entity/zone/zone.entity';
 
 /**
@@ -40,4 +41,15 @@ export interface ProductVariantPriceCalculationArgs {
     taxCategory: TaxCategory;
     activeTaxZone: Zone;
     ctx: RequestContext;
+    /**
+     * @description
+     * The TaxRate which applies to the variant: the result of `TaxRateService.getApplicableTaxRate()`
+     * for the active tax Zone and, when the variant is priced for an Order with a shipping address,
+     * the country of that address. It can be a country rate. When it is not passed,
+     * {@link DefaultProductVariantPriceCalculationStrategy} compares the active Zone with the default
+     * tax Zone instead.
+     *
+     * @since 4.0.0
+     */
+    taxRate?: TaxRate;
 }

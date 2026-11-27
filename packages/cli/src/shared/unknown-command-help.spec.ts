@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { commandManifest } from './__tests__/command-manifest.js';
 import {
     CliPluginLoadFailure,
     findEnabledPluginDeclaringCommand,
@@ -33,18 +34,27 @@ describe('unknown command help', () => {
         return dir;
     }
 
-    function installPlugin(root: string, packageName: string, cliCommands?: string[]): void {
+    function installPlugin(root: string, packageName: string, commands?: string[]): void {
         const dir = path.join(root, 'node_modules', ...packageName.split('/'));
         fs.ensureDirSync(dir);
         fs.writeJsonSync(path.join(dir, 'package.json'), {
             name: packageName,
             version: '1.0.0',
-            vendure: { cliPlugin: './cli-plugin.js', ...(cliCommands ? { cliCommands } : {}) },
+            vendure: {
+                cliPlugin: './cli-plugin.js',
+                ...(commands ? { commandManifest: './vendure-commands.json' } : {}),
+            },
         });
-        fs.writeFileSync(
-            path.join(dir, 'cli-plugin.js'),
-            `module.exports = { id: '${packageName}', commands: [] };\n`,
-        );
+        if (commands) {
+            fs.writeJsonSync(
+                path.join(dir, 'vendure-commands.json'),
+                commandManifest(
+                    packageName,
+                    commands.map(name => [name]),
+                ),
+            );
+        }
+        fs.writeFileSync(path.join(dir, 'cli-plugin.js'), `module.exports = { id: '${packageName}' };\n`);
     }
 
     function makeMachine(options: {
@@ -183,7 +193,7 @@ describe('unknown command help', () => {
         expect(unknownCommandHelp('cloud', options, new Map())).toEqual([
             'Unknown command "cloud".',
             '@example/cloud is enabled but did not register "cloud". ' +
-                'Its vendure.cliCommands lists "cloud", but the plugin does not provide it.',
+                'Its command manifest lists "cloud", but the command was not registered.',
         ]);
     });
 
@@ -201,7 +211,7 @@ describe('unknown command help', () => {
         expect(unknownCommandHelp('cloud', options, new Map())).toEqual([
             'Unknown command "cloud".',
             '@example/broken is enabled but did not register "cloud". ' +
-                'Its vendure.cliCommands lists "cloud", but the plugin does not provide it.',
+                'Its command manifest lists "cloud", but the command was not registered.',
             '"cloud" is also provided by @example/cloud, which is installed but not enabled.',
             'Enable it with: vendure plugins add @example/cloud',
         ]);
@@ -250,7 +260,7 @@ describe('unknown command help', () => {
 
             expect(unknownCommandHelp('cloud', options, new Map(), notInstalled(options))).toContain(
                 `@example/cloud is enabled globally but cannot be enabled for ${options.cwd}: ` +
-                    'Does not declare vendure.cliPlugin in its package.json',
+                    'Does not declare vendure.cliPlugin or vendure.commandManifest in its package.json',
             );
         });
 

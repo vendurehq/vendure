@@ -10,6 +10,7 @@ import {
 import { executeDashboardExtensionCallbacks } from '@/vdb/framework/extension-api/define-dashboard-extension.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { useExtendedRouter } from '@/vdb/framework/page/use-extended-router.js';
+import { installCopyForAgentToasts } from '@/vdb/graphql/copy-for-agent.js';
 import { useAuth } from '@/vdb/hooks/use-auth.js';
 import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { defaultLocale, dynamicActivate } from '@/vdb/providers/i18n-provider.js';
@@ -29,6 +30,8 @@ import { setDocumentDirection } from './common/set-document-direction.js';
 import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
 import './styles.css';
+
+installCopyForAgentToasts();
 
 const processedBaseUrl = deriveBaseUrl(
     typeof import.meta?.url === 'string' ? import.meta.url : '',

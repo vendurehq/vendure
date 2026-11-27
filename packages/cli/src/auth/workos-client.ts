@@ -1,7 +1,12 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { CliMadeError } from '../shared/cli-made-error.js';
 import {
     AUTH_LOGIN_COMMAND,
+    DeviceLoginDeniedError,
+    DeviceLoginExpiredError,
+    DeviceLoginPendingError,
+    DeviceLoginReplacedError,
     ReauthenticationRequiredError,
     SessionRefreshUnavailableError,
     SessionRejectedError,
@@ -14,6 +19,8 @@ export const WORKOS_REQUEST_TIMEOUT_MS = 30_000;
 /**
  * The WorkOS application a Vendure Console accepts tokens from, as Console
  * publishes it. The CLI never chooses either value itself.
+ *
+ * @since 4.0.0
  */
 export interface WorkosClient {
     clientId: string;
@@ -45,6 +52,14 @@ export interface WorkosAuthentication {
 /** Test seam for the poll interval. */
 export interface PollOptions extends AuthOptions {
     sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+    /**
+     * Poll one last time at this time, as epoch milliseconds, then throw
+     * {@link DeviceLoginPendingError}. The code stays valid, so a later poll can
+     * finish the login. Without it, polling goes on until the code expires.
+     */
+    until?: number;
+    /** Checked before each poll. When it returns `false`, polling stops with {@link DeviceLoginReplacedError}. */
+    stillWanted?: () => boolean;
 }
 
 /**
@@ -87,7 +102,7 @@ export async function startDeviceAuthorization(
     );
     if (!response.ok) {
         const code = await readErrorCode(response);
-        throw new Error(
+        throw new CliMadeError(
             `Could not start the login: the authentication service answered ${describeFailure(response, code)}.`,
         );
     }
@@ -101,7 +116,7 @@ export async function startDeviceAuthorization(
         !isHttpsUrl(body.verification_uri_complete) ||
         !positiveNumber(body.expires_in)
     ) {
-        throw new Error('The authentication service returned a malformed device authorization.');
+        throw new CliMadeError('The authentication service returned a malformed device authorization.');
     }
     return {
         deviceCode: body.device_code,
@@ -128,7 +143,19 @@ export async function pollDeviceAuthorization(
     const deadline = now() + device.expiresIn * 1000;
     let interval = device.interval;
     while (now() < deadline) {
-        await wait(interval * 1000, options.signal);
+        if (options.stillWanted && !options.stillWanted()) {
+            throw new DeviceLoginReplacedError();
+        }
+        // The last poll is at `until`, so every wait polls at least once, even
+        // one shorter than the interval. It stops between polls, never during
+        // one, so an approval WorkOS has already answered is never dropped.
+        let last = false;
+        let delayMs = interval * 1000;
+        if (options.until !== undefined && options.until - now() < delayMs) {
+            delayMs = Math.max(0, options.until - now());
+            last = true;
+        }
+        await wait(delayMs, options.signal);
         const response = await workosRequest(
             client,
             '/user_management/authenticate',
@@ -147,25 +174,27 @@ export async function pollDeviceAuthorization(
             return parseAuthentication(await response.json());
         }
         const code = await readErrorCode(response);
-        if (code === 'authorization_pending') {
-            continue;
-        }
-        if (code === 'slow_down') {
-            interval += 5;
+        if (code === 'authorization_pending' || code === 'slow_down') {
+            if (code === 'slow_down') {
+                interval += 5;
+            }
+            if (last) {
+                throw new DeviceLoginPendingError();
+            }
             continue;
         }
         if (code === 'access_denied') {
-            throw new Error('The login was denied in the browser.');
+            throw new DeviceLoginDeniedError();
         }
         if (code === 'expired_token') {
             break;
         }
         const advice = code === TOKEN_TOO_BIG ? ` ${TOKEN_TOO_BIG_ADVICE}` : '';
-        throw new Error(
+        throw new CliMadeError(
             `The login failed: the authentication service answered ${describeFailure(response, code)}.${advice}`,
         );
     }
-    throw new Error('The login code expired before it was approved. Run the login again.');
+    throw new DeviceLoginExpiredError();
 }
 
 /**
@@ -256,7 +285,9 @@ async function workosRequest(
         });
     } catch (error) {
         if (options.signal?.aborted) throw error;
-        throw new Error('Could not reach the authentication service. Check your connection and try again.');
+        throw new CliMadeError(
+            'Could not reach the authentication service. Check your connection and try again.',
+        );
     }
 }
 
@@ -272,17 +303,25 @@ async function readErrorCode(response: Response): Promise<string | undefined> {
     return typeof body.code === 'string' ? body.code : undefined;
 }
 
+/**
+ * The status, and the service's error code when it is a short identifier such as `invalid_grant`.
+ * Anything else the response holds stays out of the message.
+ */
 function describeFailure(response: Response, code: string | undefined): string {
-    return code ? `${code} (HTTP ${response.status})` : `HTTP ${response.status}`;
+    return code && /^[a-z][a-z0-9_]{0,63}$/.test(code)
+        ? `${code} (HTTP ${response.status})`
+        : `HTTP ${response.status}`;
 }
 
 function parseAuthentication(body: unknown): WorkosAuthentication {
     if (!isRecord(body) || !nonEmpty(body.access_token) || !nonEmpty(body.refresh_token)) {
-        throw new Error('The authentication service returned a malformed authentication response.');
+        throw new CliMadeError('The authentication service returned a malformed authentication response.');
     }
     const user = body.user;
     if (!isRecord(user) || !nonEmpty(user.id) || typeof user.email !== 'string') {
-        throw new Error('The authentication service returned an authentication response without a user.');
+        throw new CliMadeError(
+            'The authentication service returned an authentication response without a user.',
+        );
     }
     return {
         accessToken: body.access_token,

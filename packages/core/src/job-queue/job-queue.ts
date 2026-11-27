@@ -1,3 +1,4 @@
+import { getRequestId } from '../api/common/request-id';
 import { Instrument } from '../common';
 import { JobQueueStrategy } from '../config';
 
@@ -92,6 +93,7 @@ export class JobQueue<Data extends JobData<Data> = object> {
             data,
             queueName: this.options.name,
             retries: options?.retries ?? 0,
+            requestId: options?.ctx?.requestId ?? getRequestId(),
         });
 
         const isBuffered = await this.jobBufferService.add(job);

@@ -105,7 +105,7 @@ jobs:
             contents: read
         services:
             mariadb:
-                image: mariadb:11.5
+                image: mariadb:11.8
                 env:
                     MARIADB_ROOT_PASSWORD: password
                 ports:

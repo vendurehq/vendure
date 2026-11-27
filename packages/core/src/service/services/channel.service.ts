@@ -37,6 +37,7 @@ import { Customer } from '../../entity/customer/customer.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Country } from '../../entity/region/country.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -47,6 +48,7 @@ import {
     ChannelStockSetting,
     ChannelStockSettingsEvent,
 } from '../../event-bus/events/channel-stock-settings-event';
+import { ChannelTaxCountryEvent } from '../../event-bus/events/channel-tax-country-event';
 import { ChannelAssignmentService } from '../helpers/channel-assignment/channel-assignment.service';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { IdentityScopeService } from '../helpers/identity-scope/identity-scope.service';
@@ -420,9 +422,11 @@ export class ChannelService {
         input: CreateChannelInput,
     ): Promise<ErrorResultUnion<CreateChannelResult, Channel>> {
         this.assertStockSettingsNotNull(input);
+        const taxCountryCode = await this.validTaxCountryCode(ctx, input.taxCountryCode);
         const { defaultCurrencyCode } = input;
         const channel = new Channel({
             ...input,
+            taxCountryCode: taxCountryCode ?? null,
             defaultCurrencyCode,
             availableCurrencyCodes: input.availableCurrencyCodes ?? [defaultCurrencyCode],
             availableLanguageCodes: input.availableLanguageCodes ?? [input.defaultLanguageCode],
@@ -479,11 +483,16 @@ export class ChannelService {
         const originalIdentityScope = await this.identityScopeService.getScopeForLoadedChannel(channel);
         const originalTrackInventory = channel.trackInventory;
         const originalOutOfStockThreshold = channel.outOfStockThreshold;
+        const originalTaxCountryCode = channel.taxCountryCode ?? null;
+        const taxCountryCode = await this.validTaxCountryCode(ctx, input.taxCountryCode);
         const defaultLanguageValidationResult = await this.validateDefaultLanguageCode(ctx, input);
         if (isGraphQlErrorResult(defaultLanguageValidationResult)) {
             return defaultLanguageValidationResult;
         }
         const updatedChannel = patchEntity(channel, input);
+        if (taxCountryCode !== undefined) {
+            updatedChannel.taxCountryCode = taxCountryCode;
+        }
         if (input.defaultTaxZoneId) {
             updatedChannel.defaultTaxZone = await this.connection.getEntityOrThrow(
                 ctx,
@@ -542,7 +551,35 @@ export class ChannelService {
                 new ChannelStockSettingsEvent(ctx, updatedChannel, changedStockSettings),
             );
         }
+        if ((updatedChannel.taxCountryCode ?? null) !== originalTaxCountryCode) {
+            await this.eventBus.publish(
+                new ChannelTaxCountryEvent(ctx, updatedChannel, originalTaxCountryCode),
+            );
+        }
         return assertFound(this.findOne(ctx, channel.id));
+    }
+
+    /**
+     * The tax country is stored as a code, with no foreign key, so it is checked to be the code of
+     * a country Region. `null` or an empty string clears it, and `undefined` leaves it unchanged.
+     */
+    private async validTaxCountryCode(
+        ctx: RequestContext,
+        taxCountryCode?: string | null,
+    ): Promise<string | null | undefined> {
+        if (taxCountryCode === undefined) {
+            return undefined;
+        }
+        if (!taxCountryCode) {
+            return null;
+        }
+        const country = await this.connection
+            .getRepository(ctx, Country)
+            .findOne({ where: { code: taxCountryCode } });
+        if (!country) {
+            throw new UserInputError('error.tax-country-code-not-valid', { countryCode: taxCountryCode });
+        }
+        return taxCountryCode;
     }
 
     /**
