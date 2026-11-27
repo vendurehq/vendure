@@ -45,6 +45,14 @@ export const ORDER_LIST_RELATIONS: RelationPaths<Order> = [
 
 export const ORDER_DETAIL_RELATIONS: RelationPaths<Order> = [...ORDER_LIST_RELATIONS, 'customer.user'];
 
+/** Names an order for a consent preview: its code, id, state and total. */
+export function describeOrder(order: Order, decimal: (value: number) => string): string {
+    return (
+        `order ${order.code} (id ${String(order.id)}, state ${order.state}, total ` +
+        `${decimal(order.totalWithTax)} ${order.currencyCode})`
+    );
+}
+
 // Called at the top of a tool so a missing order is refused before any work starts.
 export async function findOrderOrThrow(
     orderService: OrderService,

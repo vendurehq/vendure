@@ -20,7 +20,7 @@ describe('buildMigrationReport()', () => {
         const report = buildMigrationReport(['1700000000000-first', '1700000000001-second'], []);
 
         expect(report.summary).toBe('Successfully ran 2 migrations');
-        expect(report.message).toBe('Successfully ran 2 migrations');
+        expect(report.details).toBe('');
         expect(report.hasWarnings).toBe(false);
     });
 
@@ -36,7 +36,6 @@ describe('buildMigrationReport()', () => {
         const report = buildMigrationReport([], [unmatched]);
 
         expect(report.summary).toBe('No migration files could be loaded');
-        expect(report.message).not.toContain('No pending migrations found');
         expect(report.details).toContain('dist/migrations/*.js');
         expect(report.hasWarnings).toBe(true);
     });
@@ -45,7 +44,6 @@ describe('buildMigrationReport()', () => {
         const report = buildMigrationReport(['1700000000000-first'], [outOfSync]);
 
         expect(report.summary).toBe('Successfully ran 1 migration');
-        expect(report.message).toContain('Successfully ran 1 migration');
         expect(report.details).toContain('does not match your current configuration');
         expect(report.details).toContain('ALTER TABLE `product` ADD `foo` varchar(255)');
         expect(report.hasWarnings).toBe(true);

@@ -74,7 +74,12 @@ type Mutation {
     "Removes the given coupon code from the draft Order"
     removeCouponCodeFromDraftOrder(orderId: ID!, couponCode: String!): Order
     "Sets the shipping method by id, which can be obtained with the `eligibleShippingMethodsForDraftOrder` query"
-    setDraftOrderShippingMethod(orderId: ID!, shippingMethodId: ID!): SetOrderShippingMethodResult!
+    setDraftOrderShippingMethod(
+        orderId: ID!
+        shippingMethodId: ID!
+        "The `code` of one of the ShippingMethod's options. If omitted, the cheapest option is used."
+        shippingOptionCode: String
+    ): SetOrderShippingMethodResult!
 }
 
 type Order {
@@ -217,6 +222,13 @@ input AdministratorRefundInput {
 }
 
 input ModifyOrderOptions {
+    """
+    Whether to keep the discounts the Order was paid with. When true, the Promotions on the
+    Order are not re-tested and their discounts stay as they are; the coupon codes cannot be
+    changed. When false, the Promotions are re-tested against the modified Order. When omitted,
+    the configured PromotionFreezeStrategy decides: by default the Promotions are frozen unless
+    the modification changes the OrderLines, the coupon codes or the shipping methods.
+    """
     freezePromotions: Boolean
     recalculateShipping: Boolean
 }
@@ -254,6 +266,8 @@ input ModifyOrderInput {
     Added in v2.2
     """
     shippingMethodIds: [ID!]
+    "Like `shippingMethodIds`, but can also choose one of each ShippingMethod's options. Cannot be combined with `shippingMethodIds`."
+    shippingMethods: [ShippingMethodSelectionInput!]
 }
 
 input AddItemInput {

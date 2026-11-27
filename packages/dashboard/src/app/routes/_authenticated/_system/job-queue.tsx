@@ -154,6 +154,8 @@ function JobQueuePage() {
     return (
         <ListPage
             pageId="job-queue-list"
+            // A job has no detail page.
+            rowLinks={false}
             title={<Trans>Job Queue</Trans>}
             defaultSort={[{ id: 'createdAt', desc: true }]}
             listQuery={jobListDocument}

@@ -1,19 +1,23 @@
+import { IdentifierDisplay } from '@/vdb/components/data-display/identifier.js';
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
+import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
 import { NoProductsIllustration } from '@/vdb/components/ui/illustrations.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannelAvailabilityList } from '@/vdb/hooks/use-channel-availability-list.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ListRestart, PlusIcon } from 'lucide-react';
-import { useCallback } from 'react';
+import { ReactNode, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
     AssignFacetValuesToProductsBulkAction,
@@ -28,6 +32,19 @@ export const Route = createFileRoute('/_authenticated/_products/products')({
     component: ProductListPage,
     loader: () => ({ breadcrumb: () => <Trans>Products</Trans> }),
 });
+
+/**
+ * Fits a cell's content to its column: a long name or slug ends in an ellipsis
+ * instead of widening the column. The columns then have the same widths while
+ * the rows load and once they arrive, whatever the content.
+ */
+function FitToColumn({ children, className }: Readonly<{ children: ReactNode; className?: string }>) {
+    return <div className={cn('max-w-0 min-w-full truncate', className)}>{children}</div>;
+}
+
+// The thumbnail and its loading block have one size, so a loading row, a row
+// with an image and a row without one have one height.
+const thumbnail = <Skeleton className="size-[50px] rounded-sm" />;
 
 function ProductListPage() {
     const { t } = useLingui();
@@ -65,17 +82,35 @@ function ProductListPage() {
                     component: RebuildIndexMenuItem,
                 },
             ]}
+            skeletonCells={{ featuredAsset: thumbnail }}
             customizeColumns={{
+                featuredAsset: {
+                    meta: { width: '5.5rem' },
+                    // Without an image, the placeholder keeps the row as tall as a row with one.
+                    cell: ({ row }) => <VendureImage asset={row.original.featuredAsset} preset="tiny" />,
+                },
                 name: {
-                    cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,
+                    // The one column without a width: it takes the rest of the row, and
+                    // keeps a readable minimum on a narrow screen.
+                    meta: { minWidth: '10rem' },
+                    cell: ({ row }) => (
+                        <FitToColumn>
+                            <DetailPageButton id={row.original.id} label={row.original.name} />
+                        </FitToColumn>
+                    ),
+                },
+                slug: {
+                    meta: { width: '14rem' },
+                    cell: ({ row }) => (
+                        <FitToColumn>
+                            <IdentifierDisplay value={row.original.slug} />
+                        </FitToColumn>
+                    ),
                 },
                 description: {
                     cell: RichTextDescriptionCell,
                 },
-                // With several channels, the Status filter covers `enabled`, so a second filter of the same name is left out.
-                enabled: channelAvailability.facetedFilter
-                    ? { ...channelAvailability.statusColumn, enableColumnFilter: false }
-                    : channelAvailability.statusColumn,
+                enabled: channelAvailability.statusColumn,
                 enabledInChannel: channelAvailability.enabledInChannelColumn,
             }}
             searchPlaceholder={t`Search products...`}
@@ -117,12 +152,16 @@ function ProductListPage() {
             }}
             route={Route}
             emptyStateAction={
-                <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
-                    <Button render={<Link to="./new" />}>
-                        <PlusIcon className="mr-2 h-4 w-4" />
-                        <Trans>Create your first product</Trans>
-                    </Button>
-                </PermissionGuard>
+                // The button shows once the permissions load. Its slot has the button's
+                // height before that, so the empty state does not grow when it appears.
+                <div className="flex min-h-8.5 items-center justify-center">
+                    <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
+                        <Button render={<Link to="./new" />}>
+                            <PlusIcon className="mr-2 h-4 w-4" />
+                            <Trans>Create your first product</Trans>
+                        </Button>
+                    </PermissionGuard>
+                </div>
             }
             bulkActions={[
                 [

@@ -20,11 +20,12 @@ export const adminApiExtensions = gql`
         admin
     }
 
-    "Who a tool call ran as. anonymous means nobody was signed in."
+    "Who a tool call ran as. anonymous means nobody was signed in. local means the local agent of a dev server the Vendure CLI started, acting as the superadmin."
     enum McpActorType {
         customer
         admin
         anonymous
+        local
     }
 
     "The three states an OAuth grant can be in."

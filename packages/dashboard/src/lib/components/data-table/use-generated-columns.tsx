@@ -64,6 +64,9 @@ import { getRowLabel } from './row-label.js';
  * - adds the row selection column.
  * - adds the custom field columns.
  */
+
+/** A column width of 1 px: the column is as narrow as its content allows. */
+const SHRINK_TO_CONTENT = 1;
 export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
     fields,
     customizeColumns,
@@ -291,6 +294,9 @@ function getRowActions(
         id: 'actions',
         accessorKey: 'actions',
         header: () => <Trans>Actions</Trans>,
+        // The row's spare width goes to the columns without a width, the same while
+        // the rows load and once they arrive.
+        meta: { width: SHRINK_TO_CONTENT },
         enableColumnFilter: false,
         enableHiding: false,
         cell: ({ row, table }) => {

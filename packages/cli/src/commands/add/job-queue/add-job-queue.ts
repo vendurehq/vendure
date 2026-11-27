@@ -1,125 +1,14 @@
-import { cancel, isCancel, log, text } from '@clack/prompts';
 import { Node, Scope } from 'ts-morph';
 
-
-import { exitCliCommand } from '../../../shared/cli-command-exit.js';
-import { CliCommand, CliCommandReturnVal } from '../../../shared/cli-command.js';
-import { resolvePluginFromOptions } from '../../../shared/plugin-resolution.js';
 import { ServiceRef } from '../../../shared/service-ref.js';
-import { analyzeProject, getServices, selectPlugin, selectServiceRef } from '../../../shared/shared-prompts.js';
-import { VendurePluginRef } from '../../../shared/vendure-plugin-ref.js';
 import { addImportsToFile } from '../../../utilities/ast-utils.js';
 import { camelCase, pascalCase } from '../../../utilities/case-utils.js';
-import { withInteractiveTimeout } from '../../../utilities/utils.js';
 
-const cancelledMessage = 'Add API extension cancelled';
-
-export interface AddJobQueueOptions {
-    plugin?: VendurePluginRef;
-    pluginName?: string;
-    name?: string;
-    selectedService?: string;
-    config?: string;
-    isNonInteractive?: boolean;
-}
-
-export const addJobQueueCommand = new CliCommand({
-    id: 'add-job-queue',
-    category: 'Plugin: Job Queue',
-    description: 'Defines an new job queue on a service',
-    run: options => addJobQueue(options),
-});
-
-export async function addJobQueue(
-    options?: AddJobQueueOptions,
-): Promise<CliCommandReturnVal<{ serviceRef: ServiceRef }>> {
-    const providedVendurePlugin = options?.plugin;
-    const { project } = await analyzeProject({
-        providedVendurePlugin,
-        cancelledMessage,
-        config: options?.config,
-    });
-
-    const { plugin: resolvedPlugin, shouldPromptForSelection } = resolvePluginFromOptions(project, {
-        providedPlugin: providedVendurePlugin,
-        pluginName: options?.pluginName,
-        isNonInteractive: options?.isNonInteractive === true,
-    });
-
-    // In non-interactive mode, we need all required values upfront
-    if (options?.isNonInteractive) {
-        if (!options?.name) {
-            throw new Error(
-                'Job queue name must be specified in non-interactive mode.\n' +
-                    'Usage: npx vendure add -j <PluginName> --name <job-queue-name> --selected-service <service-name>',
-            );
-        }
-        if (!options?.selectedService) {
-            throw new Error(
-                'Service must be specified in non-interactive mode.\n' +
-                    'Usage: npx vendure add -j <PluginName> --name <job-queue-name> --selected-service <service-name>',
-            );
-        }
-    }
-
-    const plugin = resolvedPlugin ?? (await selectPlugin(project, cancelledMessage));
-
-    let serviceRef: ServiceRef | undefined;
-
-    if (options?.isNonInteractive) {
-        const existingServices = getServices(project).filter(sr => {
-            return sr.classDeclaration
-                .getSourceFile()
-                .getDirectoryPath()
-                .includes(plugin.getSourceFile().getDirectoryPath());
-        });
-
-        const selectedService = existingServices.find(sr => sr.name === options.selectedService);
-
-        if (!selectedService) {
-            const availableServices = existingServices.map(sr => sr.name);
-            if (availableServices.length === 0) {
-                throw new Error(
-                    `No services found in plugin "${plugin.name}".\n` +
-                        'Please first create a service using: npx vendure add -s <ServiceName>',
-                );
-            } else {
-                throw new Error(
-                    `Service "${options.selectedService as string}" not found in plugin "${plugin.name}". Available services:\n` +
-                        availableServices.map(name => `  - ${name}`).join('\n'),
-                );
-            }
-        }
-
-        serviceRef = selectedService;
-        log.info(`Using service: ${serviceRef.name}`);
-    } else {
-        serviceRef = await selectServiceRef(project, plugin);
-    }
-
-    if (!serviceRef) {
-        throw new Error('Service is required for job queue');
-    }
-
-    const jobQueueName =
-        options?.name ??
-        (await withInteractiveTimeout(async () => {
-            return await text({
-                message: 'What is the name of the job queue?',
-                initialValue: 'my-background-task',
-                validate: input => {
-                    if (!/^[a-z][a-z-0-9]+$/.test(input)) {
-                        return 'The job queue name must be lowercase and contain only letters, numbers and dashes';
-                    }
-                },
-            });
-        }));
-
-    if (!options?.isNonInteractive && isCancel(jobQueueName)) {
-        cancel(cancelledMessage);
-        exitCliCommand(0);
-    }
-
+/**
+ * Adds a job queue to a service: the queue property, its creation in `onModuleInit`, and a
+ * `trigger<Name>` method. It prints nothing and does not save.
+ */
+export function scaffoldJobQueue(serviceRef: ServiceRef, jobQueueName: string): { triggerMethod: string } {
     addImportsToFile(serviceRef.classDeclaration.getSourceFile(), {
         moduleSpecifier: '@vendure/core',
         namedImports: ['JobQueue', 'JobQueueService', 'SerializedRequestContext'],
@@ -140,7 +29,7 @@ export async function addJobQueue(
         type: 'JobQueueService',
     });
 
-    const jobQueuePropertyName = camelCase(jobQueueName as string) + 'Queue';
+    const jobQueuePropertyName = camelCase(jobQueueName) + 'Queue';
 
     serviceRef.classDeclaration.insertProperty(0, {
         name: jobQueuePropertyName,
@@ -169,7 +58,7 @@ export async function addJobQueue(
             writer
                 .write(
                     `this.${jobQueuePropertyName} = await this.jobQueueService.createQueue({
-                name: '${jobQueueName as string}',
+                name: '${jobQueueName}',
                 process: async job => {
                     // Deserialize the RequestContext from the job data
                     const ctx = RequestContext.deserialize(job.data.ctx);
@@ -209,7 +98,7 @@ export async function addJobQueue(
 
     serviceRef.classDeclaration
         .addMethod({
-            name: `trigger${pascalCase(jobQueueName as string)}`,
+            name: `trigger${pascalCase(jobQueueName)}`,
             scope: Scope.Public,
             parameters: [{ name: 'ctx', type: 'RequestContext' }],
             statements: writer => {
@@ -221,9 +110,5 @@ export async function addJobQueue(
         })
         .formatText();
 
-    log.success(`New job queue created in ${serviceRef.name}`);
-
-    await project.save();
-
-    return { project, modifiedSourceFiles: [serviceRef.classDeclaration.getSourceFile()], serviceRef };
+    return { triggerMethod: `trigger${pascalCase(jobQueueName)}` };
 }

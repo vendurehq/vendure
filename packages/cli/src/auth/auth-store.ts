@@ -132,11 +132,18 @@ function parseOrganization(value: unknown): StoredOrganization | null | undefine
  * at WorkOS, is gone for good.
  */
 export function writeStoredAuth(auth: StoredAuth, options: AuthOptions = {}): void {
-    const file = getAuthFilePath(options);
+    writePrivateFile(getAuthFilePath(options), serialize(auth));
+}
+
+/**
+ * Replaces `file` atomically with `content`, readable by this user only: a
+ * temp file at mode 0600 renamed over it, in a directory at mode 0700.
+ */
+export function writePrivateFile(file: string, content: string): void {
     mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
     const tempFile = `${file}.${process.pid}.tmp`;
     try {
-        writeFileSync(tempFile, serialize(auth), { mode: 0o600 });
+        writeFileSync(tempFile, content, { mode: 0o600 });
         renameWithRetry(tempFile, file);
     } catch (error) {
         removeQuietly(tempFile);
@@ -146,8 +153,13 @@ export function writeStoredAuth(auth: StoredAuth, options: AuthOptions = {}): vo
 }
 
 export function clearStoredAuth(options: AuthOptions = {}): boolean {
+    return removeFile(getAuthFilePath(options));
+}
+
+/** Removes `file`. Returns `false` when it did not exist. */
+export function removeFile(file: string): boolean {
     try {
-        unlinkSync(getAuthFilePath(options));
+        unlinkSync(file);
         return true;
     } catch (error) {
         if (errorCode(error) === 'ENOENT') {

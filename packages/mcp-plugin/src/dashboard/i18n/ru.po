@@ -244,6 +244,9 @@ msgstr ""
 msgid "Anonymous"
 msgstr ""
 
+msgid "Local agent"
+msgstr ""
+
 msgid "Failed calls"
 msgstr ""
 

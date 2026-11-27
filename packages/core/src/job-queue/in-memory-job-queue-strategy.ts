@@ -206,6 +206,7 @@ export class InMemoryJobQueueStrategy extends PollingJobQueueStrategy implements
             createdAt: job.createdAt,
             startedAt: job.startedAt,
             settledAt: job.settledAt,
+            requestId: job.requestId,
         });
     }
 

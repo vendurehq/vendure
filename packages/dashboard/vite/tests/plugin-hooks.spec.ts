@@ -209,9 +209,9 @@ describe('themeVariablesPlugin', () => {
         const plugin = themeVariablesPlugin({});
         const css = `@import 'virtual:admin-theme-inline';`;
         const result = callTransform(plugin, css, '/app/styles.css');
-        // `text-sm` is the 13px body size on a 20px line, not Tailwind's 14px
-        expect(result).toContain('--text-sm: 0.8125rem;');
-        expect(result).toContain('--text-sm--line-height: calc(1.25 / 0.8125);');
+        // `text-sm` is the 14px body size on a 20px line, as in Tailwind
+        expect(result).toContain('--text-sm: 0.875rem;');
+        expect(result).toContain('--text-sm--line-height: calc(1.25 / 0.875);');
         expect(result).toContain('--text-2xs: 0.6875rem;');
         expect(result).toContain('--text-xs: 0.75rem;');
         expect(result).toContain('--font-weight-semibold: 600;');
@@ -565,6 +565,14 @@ describe('viteConfigPlugin', () => {
         expect(result.optimizeDeps.exclude).toContain('@vendure/dashboard');
         expect(result.optimizeDeps.exclude).toContain('virtual:vendure-ui-config');
         expect(result.optimizeDeps.exclude).toContain('virtual:dashboard-extensions');
+    });
+
+    // A pre-bundled `@vendure-io/ui/lib/base-ui` carries its own @base-ui/react, so its
+    // primitives lose the context of the source-served atoms ("ComboboxRootContext is missing").
+    it('excludes @vendure-io/ui from the dep optimizer', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        expect(result.optimizeDeps.exclude).toContain('@vendure-io/ui');
     });
 
     it('sets optimizeDeps.include with recharts etc', () => {

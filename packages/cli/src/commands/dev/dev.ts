@@ -1,21 +1,23 @@
-import { log } from '@clack/prompts';
 import chokidar from 'chokidar';
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { Dirent, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { Dirent, existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
 import ts from 'typescript';
 
 import {
+    forEachLine,
     getProcessPrefix,
-    pipePrefixedOutput,
     resolvePackageBin,
     signalToExitCode,
+    writePrefixedLines,
 } from '../../shared/cli-process-utils.js';
 import { showConsoleHintIfUnlinked } from '../../shared/console-hint.js';
-import { showStarPromptOnce } from '../../shared/star-prompt.js';
 import { resolveCoreProjectDirectory } from '../../utilities/monorepo-utils.js';
+
+import { DevChildMonitor, DevRun, DEVSERVER_DETACHED_ENV_VAR } from './dev-run.js';
+import { DEV_DIR_FLAG } from './dev.command.js';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
 
@@ -49,6 +51,45 @@ export interface DevOptions {
     reloadIgnoredPaths?: string[];
 }
 
+/**
+ * Where a dev run writes what a person reads: the output of its processes, its status lines and
+ * its messages. The host gives the command its own, so the run never writes to the terminal itself.
+ */
+export interface DevIo {
+    /** Text from a process, or a status line, for stdout or stderr as it came. */
+    write(stream: 'stdout' | 'stderr', text: string): void;
+    /** A one-off message, such as the Console hint. */
+    info(message: string): void;
+    warn(message: string): void;
+    /**
+     * An error while the processes run, such as a process that could not be spawned. The command
+     * host shows it as a warning notice: the run goes on, or ends with its exit code.
+     */
+    error(message: string): void;
+}
+
+/** How a dev run ended. */
+export interface DevRunResult {
+    exitCode: number;
+    /**
+     * The run was stopped from outside, by SIGINT, SIGTERM or `signal`, not by a process ending.
+     */
+    stopped: boolean;
+    /** Why the run failed before it could supervise its processes, such as a missing entry file. */
+    startError?: string;
+}
+
+export interface RunDevOptions {
+    io: DevIo;
+    /**
+     * Stops the run when it aborts. The processes get SIGINT, as for Ctrl+C, whatever made the
+     * caller abort: the command host aborts on SIGINT, on SIGTERM and on a cancel from
+     * `vendure mcp`. Without it, the run stops on SIGINT and SIGTERM itself, and passes the signal
+     * on.
+     */
+    signal?: AbortSignal;
+}
+
 const validTargets: DevTarget[] = ['all', 'server', 'worker', 'dashboard'];
 const DEFAULT_INSPECT_PORT = 9229;
 const reloadDebounceMs = 100;
@@ -56,6 +97,8 @@ const restartShutdownGraceMs = 5000;
 const reloadFileExtensions = new Set(['.cts', '.mts', '.ts']);
 const reloadIgnoredDirectories = new Set([
     '.git',
+    // The state file and the dev log of the run itself.
+    '.vendure',
     '.vendure-dashboard-temp',
     '.vite',
     'build',
@@ -72,7 +115,12 @@ const reloadIgnoredFileNames = new Set([
     'vite.config.ts',
 ]);
 
-export async function devCommand(targetArg?: string, options: DevOptions = {}): Promise<number> {
+/** Runs the dev processes of a project until they end or the run is stopped. */
+export async function runDev(
+    targetArg: string | undefined,
+    options: DevOptions,
+    { io, signal }: RunDevOptions,
+): Promise<DevRunResult> {
     try {
         const target = normalizeDevTarget(targetArg);
         const projectDir = resolveVendureProjectDirectory(process.cwd(), options.project);
@@ -82,34 +130,122 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
                 ? (['server', 'worker', 'dashboard'] as const).map(t => devProcessDefinitions[t])
                 : [devProcessDefinitions[target]];
         const prefixOutput = processes.length > 1;
-        const reloadIgnoredPaths = (options.reloadIgnoredPaths ?? []).map(ignoredPath =>
-            path.resolve(projectDir, ignoredPath),
-        );
+        const reloadIgnoredPaths = resolveReloadIgnoredPaths(projectDir, options);
+        const runsServer = processes.some(processDefinition => processDefinition.target === 'server');
 
         validateProjectFiles(projectDir, processes);
         // Once per process start. File-watcher restarts happen inside startDevProcess.
-        showConsoleHintIfUnlinked(projectDir);
+        showConsoleHintIfUnlinked(projectDir, message => io.info(message));
 
-        const children = processes.map(processDefinition =>
-            startDevProcess(projectDir, processDefinition, {
-                prefixOutput,
-                reload: options.reload !== false && processDefinition.reloadOnChange,
-                reloadIgnoredPaths,
-            }),
-        );
-        let shutdownSignal: NodeJS.Signals | undefined;
-        const exitCode = await waitForDevProcesses(children, {
-            onError: error => log.error(error.message),
-            onShutdownSignal: signal => (shutdownSignal = signal),
+        // A run started by `vendure devserver start` writes to a file, not a terminal, and the dev
+        // log already holds its processes' output.
+        const detached = process.env[DEVSERVER_DETACHED_ENV_VAR] === '1';
+        // Only a run that starts the server writes the state file and the dev log, so a second
+        // terminal running `vendure dev dashboard` leaves them alone. It refuses to start while
+        // another live run holds the state file.
+        const run = new DevRun({
+            projectDir,
+            targets: processes.map(processDefinition => processDefinition.target),
+            writeState: runsServer,
+            requireStateFile: detached,
+            warn: message => io.warn(message),
+            print: (processTarget, stream, text) => {
+                if (!detached) {
+                    printChildOutput(
+                        devProcessDefinitions[processTarget as keyof typeof devProcessDefinitions],
+                        { stream, text, prefixOutput },
+                        io,
+                    );
+                }
+            },
         });
-        if (shutdownSignal === 'SIGINT') {
-            showStarPromptOnce();
+        try {
+            const children = processes.map(processDefinition =>
+                startDevProcess(projectDir, processDefinition, {
+                    prefixOutput,
+                    reload: options.reload !== false && processDefinition.reloadOnChange,
+                    reloadIgnoredPaths,
+                    env: run.childEnv(processDefinition.target),
+                    monitor: run.monitor(processDefinition.target),
+                    io,
+                }),
+            );
+            let shutdownSignal: NodeJS.Signals | undefined;
+            const exitCode = await waitForDevProcesses(children, {
+                onError: error => io.error(error.message),
+                onShutdownSignal: received => (shutdownSignal = received),
+                signal,
+            });
+            return { exitCode, stopped: shutdownSignal !== undefined };
+        } finally {
+            run.end();
         }
-        return exitCode;
     } catch (e: unknown) {
-        log.error(e instanceof Error ? e.message : String(e));
-        return 1;
+        return { exitCode: 1, stopped: false, startError: e instanceof Error ? e.message : String(e) };
     }
+}
+
+/**
+ * The paths whose changes never restart the server or the worker: the paths the caller passes,
+ * and the GraphQL output directory that the project's Dashboard Vite config writes generated files
+ * into. Relative paths are resolved against the project directory.
+ */
+export function resolveReloadIgnoredPaths(projectDir: string, options: DevOptions = {}): string[] {
+    const paths = [...(options.reloadIgnoredPaths ?? []), ...discoverGeneratedPaths(projectDir, options)];
+    return [...new Set(paths.map(ignoredPath => path.resolve(projectDir, ignoredPath)))];
+}
+
+const defaultViteConfigFileNames = [
+    'vite.config.mts',
+    'vite.config.ts',
+    'vite.config.mjs',
+    'vite.config.js',
+    'vite.config.cts',
+    'vite.config.cjs',
+];
+
+/**
+ * Reads the `gqlOutputPath` option of the Dashboard Vite plugin from the project's Vite config.
+ * The plugin writes `graphql.ts` there when the Dashboard starts, inside the watched source tree.
+ */
+function discoverGeneratedPaths(projectDir: string, options: DevOptions): string[] {
+    const configPath = options.viteConfig
+        ? path.resolve(projectDir, options.viteConfig)
+        : defaultViteConfigFileNames
+              .map(fileName => path.join(projectDir, fileName))
+              .find(filePath => existsSync(filePath));
+    if (!configPath) {
+        return [];
+    }
+    let source: string;
+    try {
+        source = readFileSync(configPath, 'utf-8');
+    } catch {
+        return [];
+    }
+    const sourceFile = ts.createSourceFile(configPath, source, ts.ScriptTarget.Latest, true);
+    const paths: string[] = [];
+    const visit = (node: ts.Node) => {
+        if (
+            ts.isPropertyAssignment(node) &&
+            getPropertyName(node.name) === 'gqlOutputPath' &&
+            isStringLiteralLike(node.initializer)
+        ) {
+            paths.push(node.initializer.text);
+        }
+        ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+    return paths;
+}
+
+function printChildOutput(
+    processDefinition: DevProcessDefinition,
+    { stream, text, prefixOutput }: { stream: 'stdout' | 'stderr'; text: string; prefixOutput: boolean },
+    io: DevIo,
+) {
+    const prefix = prefixOutput ? `${getProcessPrefix(processDefinition)} ` : '';
+    writePrefixedLines({ write: (chunk: string) => io.write(stream, chunk) }, prefix, text);
 }
 
 export function getDevProcessDefinitions(
@@ -166,13 +302,26 @@ export function normalizeDevTarget(targetArg?: string): DevTarget {
 }
 
 export function resolveVendureProjectDirectory(cwd: string, project?: string): string {
-    return resolveCoreProjectDirectory(cwd, project);
+    return resolveCoreProjectDirectory(cwd, project, DEV_DIR_FLAG);
+}
+
+interface DevChildOptions {
+    prefixOutput: boolean;
+    /** The environment of the child. Defaults to the environment of this process. */
+    env?: NodeJS.ProcessEnv;
+    /**
+     * Receives what happens to the child. The child's output is piped to it line by line, and the
+     * monitor decides what reaches the terminal.
+     */
+    monitor: DevChildMonitor;
+    /** Where status lines go. */
+    io: DevIo;
 }
 
 function startDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
-    options: { prefixOutput: boolean; reload: boolean; reloadIgnoredPaths: string[] },
+    options: DevChildOptions & { reload: boolean; reloadIgnoredPaths: string[] },
 ): ManagedDevProcess {
     const binPath = resolvePackageBin(processDefinition.packageName, processDefinition.binName, projectDir);
     return options.reload
@@ -184,24 +333,24 @@ function spawnDevChild(
     projectDir: string,
     processDefinition: DevProcessDefinition,
     binPath: string,
-    options: { prefixOutput: boolean },
+    options: DevChildOptions,
 ): ChildProcess {
+    const baseEnv = options.env ?? process.env;
+    const stdinMode = options.prefixOutput ? 'ignore' : 'inherit';
     const child = spawn(
         process.execPath,
         [...processDefinition.nodeArgs, binPath, ...processDefinition.args],
         {
             cwd: projectDir,
             env: {
-                ...process.env,
-                FORCE_COLOR: process.env.FORCE_COLOR ?? '1',
+                ...baseEnv,
+                FORCE_COLOR: baseEnv.FORCE_COLOR ?? '1',
             },
-            stdio: options.prefixOutput ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+            stdio: [stdinMode, 'pipe', 'pipe'],
         },
     );
-    if (options.prefixOutput) {
-        pipePrefixedOutput(child.stdout, process.stdout, processDefinition);
-        pipePrefixedOutput(child.stderr, process.stderr, processDefinition);
-    }
+    forEachLine(child.stdout, line => options.monitor.onOutput('stdout', line));
+    forEachLine(child.stderr, line => options.monitor.onOutput('stderr', line));
     return child;
 }
 
@@ -209,8 +358,9 @@ function startPlainDevProcess(
     projectDir: string,
     processDefinition: DevProcessDefinition,
     binPath: string,
-    options: { prefixOutput: boolean },
+    options: DevChildOptions,
 ): ManagedDevProcess {
+    options.monitor.onSpawn(false);
     const child = spawnDevChild(projectDir, processDefinition, binPath, options);
     const runningProcess = new ManagedDevProcess(signal => {
         stopChildWithGrace(child, signal, restartShutdownGraceMs);
@@ -222,8 +372,7 @@ function startPlainDevProcess(
     return runningProcess;
 }
 
-export interface SupervisedDevProcessOptions {
-    prefixOutput: boolean;
+export interface SupervisedDevProcessOptions extends DevChildOptions {
     reloadIgnoredPaths: string[];
     // Tests pass a fake child process here, to drive the supervisor without spawning anything.
     spawnChild?: typeof spawnDevChild;
@@ -268,8 +417,9 @@ export function startSupervisedDevProcess(
         }
     });
 
-    const startChild = () => {
+    const startChild = (restart: boolean) => {
         crashExitCode = undefined;
+        options.monitor.onSpawn(restart);
         const startedChild = spawnChild(projectDir, processDefinition, binPath, options);
         child = startedChild;
         startedChild.once('error', error => runningProcess.emit('error', error));
@@ -285,10 +435,12 @@ export function startSupervisedDevProcess(
             }
             if (restarting && !stopping) {
                 restarting = false;
-                startChild();
+                startChild(true);
                 return;
             }
-            if (!isRecoverableChildExit(code, signal, stopping)) {
+            // A process that reported a startup error failed to start, even with a code 0 exit.
+            const failedToStart = !stopping && signal === null && options.monitor.hasStartupError();
+            if (!failedToStart && !isRecoverableChildExit(code, signal, stopping)) {
                 closeWatcher();
                 runningProcess.emitClose(code, signal);
                 return;
@@ -296,11 +448,13 @@ export function startSupervisedDevProcess(
             // Leave the other supervised processes running, and leave the watcher open so that the
             // next relevant file change respawns this one. Remember the exit code: if the run ends
             // before the watcher respawns this process, the run failed.
+            // A failed start that exited with code 0 still fails the run if nothing restarts it.
+            const exitCode = code || 1;
             child = undefined;
-            crashExitCode = code;
+            crashExitCode = exitCode;
             writeDevStatus(
                 processDefinition,
-                `The ${processDefinition.target} exited with code ${code}. Waiting for a file change to restart it.`,
+                `${options.monitor.onRecoverableExit(exitCode)}. Waiting for a file change to restart it.`,
                 options,
             );
         });
@@ -311,7 +465,10 @@ export function startSupervisedDevProcess(
     }
 
     const restartChild = (changedFile: string) => {
-        if (stopping || runningProcess.hasClosed) {
+        // A change that arrives while the child is still shutting down for an earlier change is
+        // part of that restart: the replacement starts once the old child has closed, and it reads
+        // the files as they are then.
+        if (stopping || runningProcess.hasClosed || restarting) {
             return;
         }
         const runningChild = child && isChildRunning(child) ? child : undefined;
@@ -323,7 +480,7 @@ export function startSupervisedDevProcess(
         );
         dashboardExtensionDirectories = discoverDashboardExtensionDirectories(projectDir);
         if (!runningChild) {
-            startChild();
+            startChild(true);
             return;
         }
         restarting = true;
@@ -331,9 +488,12 @@ export function startSupervisedDevProcess(
     };
 
     watcher.on('all', (_event, filePath) => {
-        if (!shouldRestartOnFileChange(filePath, projectDir, reloadPathScope())) {
+        if (stopping || !shouldRestartOnFileChange(filePath, projectDir, reloadPathScope())) {
             return;
         }
+        // Report the restart as soon as the change is seen, so that the state does not say `ready`
+        // or `failed` for the old process during the debounce and while it shuts down.
+        options.monitor.onChangeDetected();
         if (restartTimer) {
             clearTimeout(restartTimer);
         }
@@ -341,13 +501,18 @@ export function startSupervisedDevProcess(
     });
     watcher.once('error', error => runningProcess.emit('error', error));
 
-    startChild();
+    startChild(false);
     return runningProcess;
 }
 
 interface WaitForDevProcessesOptions {
     onError?: (error: Error) => void;
     onShutdownSignal?: (signal: NodeJS.Signals) => void;
+    /**
+     * Stops the processes when it aborts, as SIGINT does. With it, the run leaves SIGINT and
+     * SIGTERM to its caller, such as the command host, which aborts it on either.
+     */
+    signal?: AbortSignal;
 }
 
 export function waitForDevProcesses(
@@ -369,6 +534,7 @@ export function waitForDevProcesses(
         const cleanup = () => {
             process.off('SIGINT', handleSigint);
             process.off('SIGTERM', handleSigterm);
+            options.signal?.removeEventListener('abort', handleSigint);
         };
         const resolveOnce = (code: number) => {
             if (!resolved) {
@@ -427,8 +593,16 @@ export function waitForDevProcesses(
         const handleSigint = () => handleSignal('SIGINT');
         const handleSigterm = () => handleSignal('SIGTERM');
 
-        process.once('SIGINT', handleSigint);
-        process.once('SIGTERM', handleSigterm);
+        if (options.signal) {
+            if (options.signal.aborted) {
+                handleSigint();
+            } else {
+                options.signal.addEventListener('abort', handleSigint, { once: true });
+            }
+        } else {
+            process.once('SIGINT', handleSigint);
+            process.once('SIGTERM', handleSigterm);
+        }
 
         for (const child of children) {
             child.once('error', error => {
@@ -474,13 +648,11 @@ export class ManagedDevProcess extends EventEmitter {
 function writeDevStatus(
     processDefinition: DevProcessDefinition,
     message: string,
-    options: { prefixOutput: boolean },
+    options: { prefixOutput: boolean; io: DevIo },
 ) {
-    if (options.prefixOutput) {
-        process.stdout.write(`${getProcessPrefix(processDefinition)} ${message}\n`);
-    } else {
-        log.info(message);
-    }
+    // A status line is output like the processes' own, so it never piles up as a notice.
+    const prefix = options.prefixOutput ? `${getProcessPrefix(processDefinition)} ` : '';
+    options.io.write('stdout', `${prefix}${message}\n`);
 }
 
 function stopChildWithGrace(child: ChildProcess, signal: NodeJS.Signals, graceMs: number): void {
@@ -516,7 +688,7 @@ export function isRecoverableChildExit(
 export interface ReloadPathScope {
     // Vite reloads these on its own.
     dashboardExtensionDirectories?: string[];
-    // Already resolved to absolute paths by `devCommand`.
+    // Already resolved to absolute paths by `runDev`.
     reloadIgnoredPaths?: string[];
 }
 

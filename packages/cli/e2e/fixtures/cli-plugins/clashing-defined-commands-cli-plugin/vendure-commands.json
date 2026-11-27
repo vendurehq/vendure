@@ -1,0 +1,68 @@
+{
+  "manifestVersion": 1,
+  "package": "@vendure-e2e/clashing-defined-commands-cli-plugin",
+  "version": "1.0.0",
+  "commands": [
+    {
+      "path": [
+        "doctor"
+      ],
+      "description": "A second doctor",
+      "keywords": [],
+      "behavior": "readonly",
+      "requires": {},
+      "consents": {},
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "cli": {
+        "fields": {}
+      },
+      "errors": [],
+      "examples": [],
+      "expose": {
+        "mcp": true
+      },
+      "hasPlan": false
+    },
+    {
+      "path": [
+        "clashing",
+        "hello"
+      ],
+      "description": "Never loaded",
+      "keywords": [],
+      "behavior": "readonly",
+      "requires": {},
+      "consents": {},
+      "input": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "output": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "cli": {
+        "fields": {}
+      },
+      "errors": [],
+      "examples": [],
+      "expose": {
+        "mcp": true
+      },
+      "hasPlan": false
+    }
+  ]
+}

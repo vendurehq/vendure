@@ -1,0 +1,14 @@
+{
+    "name": "@vendure-e2e/extension-cli-plugin",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "vendure": {
+        "commandManifest": "./vendure-commands.json",
+        "commandDefinitions": "./commands.js"
+    },
+    "peerDependencies": {
+        "@vendure/common": "*",
+        "zod": "*"
+    }
+}

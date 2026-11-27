@@ -1,0 +1,31 @@
+---
+title: "vendure commands"
+generated: true
+---
+
+
+<a name="commands"></a>
+
+## vendure commands
+
+List the commands of this project with their input and output schemas.
+
+```bash
+vendure commands
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** none. This command runs only on the command line.
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `commands` | array of object | The CLI's own commands and those of the project's enabled plugins, from their manifests. |
+| `refused` (optional) | array of object | Enabled plugins whose defineCommand commands or command extensions were left out, each with the coded error that says why. |
+
+### Examples
+
+```bash
+vendure commands --json
+```

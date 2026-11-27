@@ -1,11 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { OrderAddress, PaymentMethodQuote, ShippingMethodQuote } from '@vendure/common/lib/generated-types';
+import {
+    ConfigurableOperation,
+    ConfigurableOperationDefinition,
+    OrderAddress,
+    PaymentMethodQuote,
+    ShippingMethodQuote,
+} from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
     Address,
     Asset,
     Channel,
     Collection,
+    ConfigArgService,
+    ConfigDefType,
     ConfigService,
+    Country,
     CurrencyCode,
     Customer,
     CustomerGroup,
@@ -17,13 +27,22 @@ import {
     isGraphQlErrorResult,
     Order,
     Payment,
+    PaymentMethod,
     Product,
     ProductOptionGroup,
     ProductVariant,
     Refund,
+    Role,
+    ShippingMethod,
     StockLevel,
+    StockLocation,
+    TaxCategory,
+    TaxRate,
+    Zone,
 } from '@vendure/core';
 import { toDecimalString } from '@vendure/mcp-sdk';
+
+import { redactArgValue, secretConfigArgsOf } from '../../config-arg-secrets';
 
 /** How much of a product's description a list item keeps; `get_product` has the whole text. */
 const LIST_ITEM_DESCRIPTION_LENGTH = 200;
@@ -33,7 +52,10 @@ const LIST_ITEM_DESCRIPTION_LENGTH = 200;
 // configured decimal places, which only ConfigService can provide.
 @Injectable()
 export class McpToolSerializerService {
-    constructor(private readonly configService: ConfigService) {}
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly configArgService: ConfigArgService,
+    ) {}
 
     // Tool results carry the raw whole-number amount as well as this formatted string, so a
     // language model can quote a price without doing the division itself.
@@ -346,6 +368,8 @@ export class McpToolSerializerService {
                 ? order.shippingLines.map(line => ({
                       id: line.id,
                       shippingMethodId: line.shippingMethodId,
+                      shippingOptionCode: line.shippingOptionCode,
+                      shippingOptionName: line.shippingOptionName,
                       priceWithTax: line.priceWithTax,
                       priceWithTaxDecimal: this.decimal(line.priceWithTax),
                   }))
@@ -391,6 +415,11 @@ export class McpToolSerializerService {
             customFields: this.shopVisibleCustomFields('ShippingMethod', quote.customFields),
             priceDecimal: this.decimal(quote.price),
             priceWithTaxDecimal: this.decimal(quote.priceWithTax),
+            options: quote.options.map(option => ({
+                ...option,
+                priceDecimal: this.decimal(option.price),
+                priceWithTaxDecimal: this.decimal(option.priceWithTax),
+            })),
             currencyCode,
         };
     }
@@ -425,6 +454,170 @@ export class McpToolSerializerService {
             }
         }
         return visible;
+    }
+
+    /**
+     * A channel with its store settings. `channel()` stays small because `list_channels` and
+     * `set_active_channel` only need the code and the token.
+     */
+    channelDetails(channel: Channel) {
+        return {
+            ...this.channel(channel),
+            defaultLanguageCode: channel.defaultLanguageCode,
+            availableLanguageCodes: channel.availableLanguageCodes,
+            defaultCurrencyCode: channel.defaultCurrencyCode,
+            availableCurrencyCodes: channel.availableCurrencyCodes,
+            pricesIncludeTax: channel.pricesIncludeTax,
+            taxCountryCode: channel.taxCountryCode ?? null,
+            defaultTaxZone: channel.defaultTaxZone ? this.zoneReference(channel.defaultTaxZone) : null,
+            defaultShippingZone: channel.defaultShippingZone
+                ? this.zoneReference(channel.defaultShippingZone)
+                : null,
+            trackInventory: channel.trackInventory,
+            outOfStockThreshold: channel.outOfStockThreshold,
+        };
+    }
+
+    // Errors are returned directly so the registry can report them as failed tool calls.
+    channelOrError(result: Channel | GraphQLErrorResult) {
+        if (!isGraphQlErrorResult(result)) {
+            return { channel: this.channelDetails(result) };
+        }
+        return { ...result };
+    }
+
+    private zoneReference(zone: Zone) {
+        return { id: zone.id, name: zone.name };
+    }
+
+    /** Members are listed by country code, which is what `create_zone` and `update_zone` take. */
+    zone(zone: Zone) {
+        return {
+            id: zone.id,
+            name: zone.name,
+            memberCountryCodes: (zone.members ?? []).map(member => member.code),
+        };
+    }
+
+    country(country: Country) {
+        return { id: country.id, code: country.code, name: country.name, enabled: country.enabled };
+    }
+
+    taxCategory(category: TaxCategory) {
+        return { id: category.id, name: category.name, isDefault: category.isDefault };
+    }
+
+    /** A rate targets either a zone or a single country, never both. */
+    taxRate(rate: TaxRate) {
+        return {
+            id: rate.id,
+            name: rate.name,
+            enabled: rate.enabled,
+            value: rate.value,
+            taxCategory: rate.category ? { id: rate.category.id, name: rate.category.name } : null,
+            target: rate.region
+                ? { countryCode: rate.region.code }
+                : rate.zone
+                  ? { zoneId: rate.zone.id, zoneName: rate.zone.name }
+                  : null,
+            customerGroupId: rate.customerGroup?.id ?? null,
+        };
+    }
+
+    shippingMethod(method: ShippingMethod) {
+        return {
+            id: method.id,
+            code: method.code,
+            name: method.name,
+            description: method.description,
+            fulfillmentHandlerCode: method.fulfillmentHandlerCode,
+            checker: this.configurableOperation('ShippingEligibilityChecker', method.checker),
+            calculator: this.configurableOperation('ShippingCalculator', method.calculator),
+        };
+    }
+
+    paymentMethod(method: PaymentMethod) {
+        return {
+            id: method.id,
+            code: method.code,
+            name: method.name,
+            description: method.description,
+            enabled: method.enabled,
+            checker: method.checker
+                ? this.configurableOperation('PaymentMethodEligibilityChecker', method.checker)
+                : null,
+            handler: this.configurableOperation('PaymentMethodHandler', method.handler),
+        };
+    }
+
+    stockLocation(location: StockLocation) {
+        return { id: location.id, name: location.name, description: location.description };
+    }
+
+    role(role: Role) {
+        return {
+            id: role.id,
+            code: role.code,
+            description: role.description,
+            permissions: role.permissions,
+            channelId: role.channelId,
+        };
+    }
+
+    /**
+     * Arguments come back by name, in the same shape the create and update tools take. Core stores
+     * every value as a string. A number, boolean or list argument is returned parsed, and any other
+     * argument as the stored string, so sending a value back unchanged stores the same value.
+     *
+     * A set `secret` argument is always replaced with the redaction placeholder: a tool result goes
+     * to a language model, so no tool reveals a secret, whatever the configured secret access
+     * strategy allows. Sending the placeholder back in an update keeps the stored value. An unset
+     * secret is returned as it is, so a caller can see that it is missing.
+     */
+    private configurableOperation(type: ConfigDefType, operation: ConfigurableOperation) {
+        const definitions = this.configArgService.getDefinitions(type) as Array<{
+            code: string;
+            args: Record<string, { type: string; list?: boolean }>;
+        }>;
+        const definition = definitions.find(candidate => candidate.code === operation.code);
+        const isSecret = secretConfigArgsOf(this.configArgService);
+        const args: Record<string, unknown> = {};
+        for (const arg of operation.args) {
+            const value = redactArgValue(operation.code, arg.name, arg.value, isSecret);
+            args[arg.name] =
+                value === REDACTED_SECRET_PLACEHOLDER
+                    ? value
+                    : this.configArgValue(arg.value, definition?.args[arg.name]);
+        }
+        return { code: operation.code, args };
+    }
+
+    private configArgValue(value: string, definition: { type: string; list?: boolean } | undefined): unknown {
+        const parsed = definition?.list || ['int', 'float', 'boolean'].includes(definition?.type ?? '');
+        if (!parsed) {
+            return value;
+        }
+        try {
+            return JSON.parse(value);
+        } catch {
+            return value;
+        }
+    }
+
+    /** What `list_shipping_options` and `list_payment_options` return for each operation. */
+    configurableOperationDefinition(definition: ConfigurableOperationDefinition) {
+        return {
+            code: definition.code,
+            description: definition.description,
+            args: definition.args.map(arg => ({
+                name: arg.name,
+                type: arg.type,
+                list: arg.list,
+                required: arg.required,
+                defaultValue: arg.defaultValue ?? null,
+                description: arg.description ?? null,
+            })),
+        };
     }
 
     /**

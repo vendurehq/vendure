@@ -64,7 +64,9 @@ function createStrategy(
         query: vi.fn(() => Promise.resolve([{ version }])),
     };
     const strategy = new SqlJobQueueStrategy({ backoffStrategy: () => 1000 });
-    strategy.init({ get: () => ({ rawConnection }) } as any);
+    strategy.init({
+        get: () => ({ rawConnection, withRawTransaction: (work: any) => rawConnection.transaction(work) }),
+    } as any);
     return { strategy, queries, rawConnection };
 }
 

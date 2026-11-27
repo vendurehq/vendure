@@ -104,7 +104,15 @@ export function ChannelSwitcher() {
                         <DropdownMenuTrigger render={<SidebarIdentityButton />}>
                             <ChannelIdentity color={getColor(displayChannel?.id ?? '')} />
                             <SidebarIdentityText
-                                title={<ChannelCodeLabel code={displayChannel?.code} />}
+                                // Until the channel loads, an empty line holds the title's
+                                // place, so the caption does not move down when it arrives.
+                                title={
+                                    displayChannel ? (
+                                        <ChannelCodeLabel code={displayChannel.code} />
+                                    ) : (
+                                        '\u00a0'
+                                    )
+                                }
                                 caption={<Trans>Language: {formatLanguageName(contentLanguage)}</Trans>}
                             />
                         </DropdownMenuTrigger>

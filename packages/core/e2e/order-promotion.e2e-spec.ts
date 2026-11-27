@@ -2032,26 +2032,14 @@ describe('Promotions applied to Orders', () => {
                     // Sanity: every result should be classifiable as one or the other.
                     expect(orderResults.length + errorResults.length).toBe(CONCURRENT_ATTEMPTS);
 
-                    // The number of winners is fully determined by the DB's default
-                    // isolation level — no timing non-determinism in either case —
-                    // so we assert each outcome exactly to catch any future drift:
-                    //
-                    //   - Postgres (READ COMMITTED): each non-locking SELECT sees
-                    //     latest committed data, so the last lock holder observes
-                    //     count = 0 and keeps the coupon. Exactly 1 winner.
-                    //   - MySQL/MariaDB (REPEATABLE READ): the consistent-read
-                    //     snapshot is established by the first non-locking SELECT
-                    //     in addPaymentToOrder, before this lock is acquired, so
-                    //     each contender's count query still sees the others as
-                    //     holding the coupon and every transaction strips. Exactly
-                    //     0 winners.
-                    //
-                    // Both outcomes uphold the safety invariant (the bug class we
-                    // guard against — N winners — would fail either branch). When
-                    // the MySQL snapshot gap is closed in a follow-up, this branch
-                    // should flip to 1 and force this assertion to be updated.
-                    // See the JSDoc on revalidateCouponCodesForOrder.
-                    const expectedWinners = process.env.DB === 'postgres' ? 1 : 0;
+                    // Exactly one winner on every database. Each non-locking SELECT sees the
+                    // latest committed data (READ COMMITTED, which Vendure also uses on MySQL
+                    // and MariaDB), so the last lock holder observes count = 0 and keeps the
+                    // coupon. Under MySQL's own default of REPEATABLE READ this was 0: the
+                    // snapshot taken before the lock still showed the other contenders holding
+                    // the coupon, so every transaction stripped it. N winners, the bug class
+                    // this guards against, fails the assertion either way.
+                    const expectedWinners = 1;
                     expect(orderResults.length).toBe(expectedWinners);
                     expect(errorResults.length).toBe(CONCURRENT_ATTEMPTS - expectedWinners);
 

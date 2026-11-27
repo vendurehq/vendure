@@ -695,7 +695,7 @@ describe('Slug generation', () => {
                     });
                     expect.fail('Should have thrown an error');
                 } catch (error: any) {
-                    expect(error.message).toContain('error.entity-not-found');
+                    expect(error.message).toContain('No entity named "NonExistentEntity" was found');
                 }
             });
 
@@ -710,7 +710,7 @@ describe('Slug generation', () => {
                     });
                     expect.fail('Should have thrown an error');
                 } catch (error: any) {
-                    expect(error.message).toContain('error.entity-has-no-field');
+                    expect(error.message).toContain('The entity "Product" has no field "nonExistentField"');
                 }
             });
         });

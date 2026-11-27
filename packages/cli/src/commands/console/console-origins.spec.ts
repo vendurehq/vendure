@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_CONSOLE_API_URL, DEFAULT_CONSOLE_URL, officialConsoleEnvironment } from './console-origins.js';
+import {
+    consoleUrlForApi,
+    DEFAULT_CONSOLE_API_URL,
+    DEFAULT_CONSOLE_URL,
+    officialConsoleEnvironment,
+} from './console-origins.js';
 
 /**
  * The official Console origins, written out again so that changing one in
@@ -69,5 +74,24 @@ describe('officialConsoleEnvironment()', () => {
         ['localhost', 'http://localhost:3000', 'http://localhost:3001'],
     ])('does not treat %s as official', (_label, consoleUrl, apiUrl) => {
         expect(officialConsoleEnvironment({ consoleUrl, apiUrl })).toBeUndefined();
+    });
+});
+
+describe('consoleUrlForApi', () => {
+    it('gives the Console of an official API', () => {
+        expect(consoleUrlForApi('https://api.vendure.io', {})).toBe('https://console.vendure.io');
+    });
+
+    it('gives a loopback Console app only for a loopback API', () => {
+        expect(
+            consoleUrlForApi('http://127.0.0.1:3000', { VENDURE_CONSOLE_APP_URL: 'http://localhost:5173' }),
+        ).toBe('http://localhost:5173');
+    });
+
+    it('gives nothing for a loopback API whose app URL is not a trusted pair, or is missing', () => {
+        expect(
+            consoleUrlForApi('http://127.0.0.1:3000', { VENDURE_CONSOLE_APP_URL: 'https://evil.example' }),
+        ).toBeUndefined();
+        expect(consoleUrlForApi('http://127.0.0.1:3000', {})).toBeUndefined();
     });
 });

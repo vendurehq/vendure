@@ -38,7 +38,7 @@ if (require.main === module) {
                         return app;
                     }),
                 initialData,
-                path.join(__dirname, '../create/assets/products.csv'),
+                path.join(__dirname, '../core/mock-data/data-sources/products.csv'),
             ),
         )
         .then(async app => {

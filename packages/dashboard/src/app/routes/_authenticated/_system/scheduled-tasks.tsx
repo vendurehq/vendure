@@ -261,9 +261,9 @@ function ScheduledTasksPage() {
                     <DataTable
                         onRefresh={refreshScheduledTasks}
                         columns={columns}
-                        data={data?.scheduledTasks ?? []}
+                        data={data?.scheduledTasks}
                         isLoading={isFetching}
-                        totalItems={data?.scheduledTasks?.length ?? 0}
+                        totalItems={data?.scheduledTasks?.length ?? null}
                         defaultColumnVisibility={{
                             schedule: false,
                         }}

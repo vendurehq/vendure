@@ -1,0 +1,29 @@
+---
+title: "IsCompatible"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="451" packageName="@vendure/core" since="4.0.0" />
+
+Returns whether a Vendure version satisfies a plugin's `compatibility` range. This is the
+check that runs at bootstrap.
+
+A prerelease version also passes when its release version (`semver.coerce`) satisfies the
+range. A range such as `^4.0.0` does not match `4.0.0-preview.3` or a `4.0.0-major-…` nightly
+by itself, because those come before `4.0.0`. A range that names a prerelease, such as
+`>=4.0.0-preview.5`, is checked as it is, so `4.0.0-preview.3` does not satisfy it. A range with
+an explicit upper bound, such as `>=3.0.0 <4.0.0`, admits `4.0.0` prereleases: use a caret or
+`<4.0.0-0` to refuse them.
+
+```ts title="Signature"
+function isCompatible(version: string, range: string): boolean
+```
+Parameters
+
+### version
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### range
+
+<MemberInfo kind="parameter" type={`string`} />
+

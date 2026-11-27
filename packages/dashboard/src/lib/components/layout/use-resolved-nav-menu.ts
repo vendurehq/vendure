@@ -1,5 +1,13 @@
 import { NavMenuItem, NavMenuSection } from '@/vdb/framework/nav-menu/nav-menu-extensions.js';
-import { resolveNavMenu } from '@/vdb/framework/nav-menu/resolve-nav-menu.js';
+import {
+    readRememberedNavEntries,
+    rememberNavEntries,
+} from '@/vdb/framework/nav-menu/remembered-nav-menu.js';
+import {
+    navMenuEntryIds,
+    rememberedNavMenu,
+    resolveNavMenu,
+} from '@/vdb/framework/nav-menu/resolve-nav-menu.js';
 import { getLockedCapability } from '@/vdb/framework/platform-promotion/locked-capabilities.js';
 import { getLockedNavItemCapability } from '@/vdb/framework/platform-promotion/register-locked-navigation.js';
 import { useDashboardUserContext } from '@/vdb/hooks/use-dashboard-user-context.js';
@@ -45,7 +53,7 @@ export function useResolvedNavMenu(allItems: Array<NavMenuSection | NavMenuItem>
 
     const { ctx, ready } = useDashboardUserContext({ includeCustomFields: hasUserDependentRules });
 
-    return React.useMemo(
+    const resolved = React.useMemo(
         () =>
             resolveNavMenu({ sections: items }, ctx, {
                 // Withhold only the entries with a predicate until the context has
@@ -54,5 +62,20 @@ export function useResolvedNavMenu(allItems: Array<NavMenuSection | NavMenuItem>
                 userContextPending: hasUserDependentRules && !ready,
             }),
         [items, ctx, ready, hasUserDependentRules],
+    );
+
+    // Until the permissions load, every entry that requires one would be hidden,
+    // and appear a moment later: the sections below would move down. The entries
+    // of the last visit stand in for them meanwhile. The menu is resolved from
+    // `ctx`, whose permissions are known once it has the active channel.
+    const settled = !!ctx.activeChannel && (!hasUserDependentRules || ready);
+    const [remembered] = React.useState(readRememberedNavEntries);
+    React.useEffect(() => {
+        if (settled) rememberNavEntries(navMenuEntryIds(resolved));
+    }, [settled, resolved]);
+
+    return React.useMemo(
+        () => (settled || !remembered ? resolved : rememberedNavMenu({ sections: items }, remembered)),
+        [settled, remembered, resolved, items],
     );
 }

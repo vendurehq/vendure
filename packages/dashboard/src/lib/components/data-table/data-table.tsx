@@ -32,7 +32,10 @@ import {
     VisibilityState,
 } from '@tanstack/react-table';
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
-import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
+import {
+    DataTable as UiDataTable,
+    useRememberedListTotal,
+} from '@vendure-io/ui/components/molecules/data-table/data-table';
 import type {
     DataTableFilterColumn,
     DataTableRowCellProps,
@@ -55,7 +58,9 @@ import { createPaginationState, syncPaginationState } from './data-table-paginat
 
 // Skeleton rows are capped so a large pageSize doesn't bloat the DOM during
 // the initial fetch.
-const MAX_SKELETON_ROWS = 10;
+// The items before the first load. One array, so the row model does not rebuild
+// on every render.
+const NO_ITEMS: never[] = [];
 
 const DRAG_HANDLE_COLUMN_ID = '__drag_handle__';
 
@@ -147,8 +152,16 @@ export interface FacetedFilter {
 interface DataTableProps<TData> {
     children?: React.ReactNode;
     columns: ColumnDef<TData, any>[];
-    data: TData[];
-    totalItems: number;
+    /**
+     * The items of the current page. `undefined` until the first load finishes: the
+     * table shows skeleton rows. `[]` is a loaded empty list.
+     */
+    data: TData[] | undefined;
+    /**
+     * The number of items on all pages. `null` while it is not known (the first page
+     * has not loaded yet). Do not pass 0 for "not known": 0 means the list is empty.
+     */
+    totalItems: number | null;
     isLoading?: boolean;
     page?: number;
     itemsPerPage?: number;
@@ -203,6 +216,37 @@ interface DataTableProps<TData> {
      * @since 4.0.0
      */
     selectionStorageKey?: string;
+    /**
+     * @description
+     * Remembers the list's total item count, in local storage under this key. The
+     * next first load draws as many skeleton rows as the page will have, so the
+     * table keeps its height when the rows arrive, also after a reload. The total
+     * is read once, when the table mounts, so the key must be known then: name the
+     * list, and leave out anything that loads later, such as the active channel.
+     * Without it the first load draws one full page of skeleton rows.
+     *
+     * @since 4.0.0
+     */
+    rowCountKey?: string;
+    /**
+     * @description
+     * Loading cells by column id, for cells taller than one text line (a
+     * thumbnail, a two-line cell), so a skeleton row has the height of a
+     * loaded row. A missing entry draws one text line.
+     *
+     * @since 4.0.0
+     */
+    skeletonCells?: Record<string, React.ReactNode>;
+    /**
+     * @description
+     * The rows open a detail page through a `DetailPageButton`. The table
+     * keeps the row link's slot after the last column while it loads and when it
+     * is empty, so the columns do not move when the rows arrive.
+     *
+     * @default false
+     * @since 4.0.0
+     */
+    rowLinks?: boolean;
     enableViews?: boolean;
     /**
      * @description
@@ -314,6 +358,9 @@ export function DataTable<TData>({
     selectedItems,
     onSelectionChange,
     selectionStorageKey,
+    rowCountKey,
+    skeletonCells,
+    rowLinks,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -343,6 +390,9 @@ export function DataTable<TData>({
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
         defaultColumnVisibility ?? {},
     );
+    const items: TData[] = data ?? NO_ITEMS;
+    // The list's total from the last visit sets the skeleton rows of the first load.
+    const expectedTotal = useRememberedListTotal(rowCountKey, isLoading ? null : totalItems);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
@@ -380,7 +430,7 @@ export function DataTable<TData>({
     ) => {
         const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
 
-        data.forEach(item => {
+        items.forEach(item => {
             const id = getRowItemId(item);
             if (nextSelection[id]) {
                 selectedItemsCache.current.set(id, item);
@@ -401,7 +451,7 @@ export function DataTable<TData>({
     };
 
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
-        data,
+        data: items,
         onReorder,
         disabled: disableDragAndDrop,
         onError: error => {
@@ -696,7 +746,11 @@ export function DataTable<TData>({
                     index tables elsewhere, and avoiding a dead middle. */}
                 {!toolsInHeader && (
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">{showViewsControls && <DataTableViewsTabs />}</div>
+                        {/* As tall as the view tabs, also before the saved views load
+                            and when the server has none, so the toolbar keeps its height. */}
+                        <div className={cn('min-w-0 flex-1', showViewsControls && 'min-h-9')}>
+                            {showViewsControls && <DataTableViewsTabs />}
+                        </div>
                         {renderTools(table)}
                     </div>
                 )}
@@ -750,15 +804,17 @@ export function DataTable<TData>({
                 <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
                     <UiDataTable<TData>
                         className="@container/table"
-                        rows={localData}
+                        rows={data === undefined ? undefined : localData}
                         columns={bridgeColumns}
                         getRowId={row => (row as { id: string }).id}
                         onTableReady={handleTableReady}
                         isLoading={isLoading}
-                        skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
+                        expectedTotal={expectedTotal}
+                        skeletonCells={skeletonCells}
+                        rowLinks={rowLinks}
                         frame={frame}
                         pagination={
-                            onPageChange && totalItems != null
+                            onPageChange
                                 ? {
                                       page: pagination.pageIndex + 1,
                                       pageSize: pagination.pageSize,

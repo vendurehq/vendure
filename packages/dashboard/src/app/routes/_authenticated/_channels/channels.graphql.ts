@@ -8,6 +8,7 @@ export const channelItemFragment = graphql(`
         code
         token
         pricesIncludeTax
+        taxCountryCode
         trackInventory
         outOfStockThreshold
         availableCurrencyCodes

@@ -7,7 +7,12 @@ import {
 
 import { NavMenuConfig, NavMenuItem, NavMenuSection } from './nav-menu-extensions.js';
 import { setNavVisibility } from './nav-menu-helpers.js';
-import { resetNavMenuWarnings, resolveNavMenu } from './resolve-nav-menu.js';
+import {
+    navMenuEntryIds,
+    rememberedNavMenu,
+    resetNavMenuWarnings,
+    resolveNavMenu,
+} from './resolve-nav-menu.js';
 
 /** Reads item ids from a resolved entry, failing the test rather than casting. */
 function itemIds(entry: NavMenuSection | NavMenuItem | undefined): string[] {
@@ -340,5 +345,47 @@ describe('resolveNavMenu - userContextPending', () => {
 
         expect(result.map(s => s.id)).toEqual(['conditional', 'plain', 'section']);
         expect(itemIds(result[2])).toEqual(['conditional-item', 'plain-item']);
+    });
+});
+
+describe('rememberedNavMenu', () => {
+    const remembered = config([
+        {
+            id: 'catalog',
+            title: 'Catalog',
+            placement: 'top',
+            order: 2,
+            items: [
+                { id: 'facets', title: 'Facets', url: '/facets', order: 2, requiresPermission: 'ReadFacet' },
+                {
+                    id: 'products',
+                    title: 'Products',
+                    url: '/products',
+                    order: 1,
+                    requiresPermission: 'ReadProduct',
+                },
+            ],
+        },
+        { id: 'insights', title: 'Insights', url: '/', placement: 'top', order: 1 },
+        {
+            id: 'sales',
+            title: 'Sales',
+            placement: 'top',
+            order: 3,
+            items: [{ id: 'orders', title: 'Orders', url: '/orders' }],
+        },
+    ]);
+
+    it('round-trips the ids of a resolved menu without reading permissions', () => {
+        const resolved = resolveNavMenu(remembered, ctxWith(['ReadProduct']));
+        const ids = navMenuEntryIds(resolved);
+        expect(ids).toEqual(['insights', 'catalog', 'catalog/products', 'sales', 'sales/orders']);
+        // Before the permissions load, nothing would pass; the remembered ids stand in.
+        expect(resolveNavMenu(remembered, ctxWith([])).map(s => s.id)).toEqual(['insights', 'sales']);
+        expect(rememberedNavMenu(remembered, ids)).toEqual(resolved);
+    });
+
+    it('drops a section none of whose items are remembered', () => {
+        expect(rememberedNavMenu(remembered, ['insights', 'catalog']).map(s => s.id)).toEqual(['insights']);
     });
 });
