@@ -1,5 +1,6 @@
 import { type Page, expect, test } from '@playwright/test';
 
+import { BaseListPage } from '../../page-objects/list-page.base.js';
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
@@ -242,4 +243,40 @@ test.describe('Address form country dropdown', () => {
         const optionNames = await page.getByRole('option').allInnerTexts();
         expect(optionNames).toEqual([...optionNames].sort((a, b) => a.localeCompare(b)));
     });
+});
+
+// #6018 — opening or restoring a list page must not push a history entry. The extra entry made
+// "back" land on the same list, which pushed again and deleted the "forward" entry.
+test('should not add history entries when the customer list mounts', async ({ page }) => {
+    const listPage = new BaseListPage(page, {
+        path: '/customers',
+        title: 'Customers',
+        newButtonLabel: 'New Customer',
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('page-heading')).toBeVisible();
+    const homeUrl = page.url();
+
+    await listPage.goto();
+    await listPage.expectRowsLoaded();
+    const listUrl = page.url();
+
+    await listPage.getRows().first().locator('a[href*="/customers/"]').first().click();
+    await expect(page).toHaveURL(/\/customers\/[^/?]+$/);
+    const detailUrl = page.url();
+
+    await page.goBack();
+    await expect(page).toHaveURL(listUrl);
+    await listPage.expectRowsLoaded();
+
+    await page.goForward();
+    await expect(page).toHaveURL(detailUrl);
+
+    await page.goBack();
+    await expect(page).toHaveURL(listUrl);
+    await listPage.expectRowsLoaded();
+
+    // One "back" leaves the list, because opening it added a single entry.
+    await page.goBack();
+    await expect(page).toHaveURL(homeUrl);
 });
