@@ -12,6 +12,7 @@ import { summate } from '@vendure/common/lib/shared-utils';
 import {
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
+    EventBus,
     freeShipping,
     mergeConfig,
     minimumOrderAmount,
@@ -21,6 +22,7 @@ import {
     PriceCalculationResult,
     productsPercentageDiscount,
     ProductVariant,
+    RefundEvent,
     RequestContext,
     ShippingCalculator,
     StockLevelService,
@@ -349,6 +351,7 @@ describe('Order modification', () => {
     let orderId: string;
     let testShippingMethodId: string;
     let testExpressShippingMethodId: string;
+    const refundEvents: RefundEvent[] = [];
 
     type OrderFragment = FragmentOf<typeof orderFragment>;
     const orderGuard: ErrorResultGuard<OrderFragment> = createErrorResultGuard(input => !!input.id);
@@ -390,6 +393,10 @@ describe('Order modification', () => {
             customerCount: 3,
         });
         await adminClient.asSuperAdmin();
+        server.app
+            .get(EventBus)
+            .ofType(RefundEvent)
+            .subscribe(event => refundEvents.push(event));
 
         await adminClient.query(updateProductVariantsDocument, {
             input: [
@@ -1040,6 +1047,12 @@ describe('Order modification', () => {
             orderWithModificationsGuard.assertSuccess(modifyOrder);
 
             const priceDelta = -order.lines[0].unitPriceWithTax;
+            // OSS-939: modifyOrder publishes a RefundEvent for the Refund it creates.
+            await vi.waitFor(() =>
+                expect(
+                    refundEvents.filter(e => e.order.code === order.code).map(e => e.refund.total),
+                ).toEqual([-priceDelta]),
+            );
             const expectedTotal = order.totalWithTax + priceDelta;
             expect(modifyOrder.totalWithTax).toBe(expectedTotal);
             expect(modifyOrder.lines[0].quantity).toBe(1);
