@@ -367,8 +367,7 @@ export function RelationSelector<T>({
                             return (
                                 <Chip
                                     key={itemId}
-                                    onRemove={disabled ? undefined : () => handleRemove(itemId)}
-                                    removeLabel={removeLabel}
+                                    {...(disabled ? { onRemove: undefined } : { onRemove: () => handleRemove(itemId), removeLabel })}
                                 >
                                     {label}
                                 </Chip>
@@ -425,7 +424,7 @@ export function RelationSelector<T>({
                 isItemEqualToValue={(a: T, b: T) => String(a[config.idKey]) === String(b[config.idKey])}
                 onLoadMore={() => void fetchNextPage()}
                 hasMore={hasNextPage}
-                loading={isLoading || isFetchingNextPage || searchTerm !== debouncedSearch}
+                isLoading={isLoading || isFetchingNextPage || searchTerm !== debouncedSearch}
                 loadingLabel={t`Loading…`}
                 disabled={disabled}
             >

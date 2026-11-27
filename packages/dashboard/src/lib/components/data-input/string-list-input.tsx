@@ -102,8 +102,7 @@ function SortableItem({ id, item, isDisabled, isEditing, onRemove, onEdit, onSav
                     </button>
                 )
             }
-            onRemove={isDisabled ? undefined : onRemove}
-            removeLabel={`Remove ${item}`}
+            {...(isDisabled ? { onRemove: undefined } : { onRemove, removeLabel: `Remove ${item}` })}
         >
             {isEditing ? (
                 <input

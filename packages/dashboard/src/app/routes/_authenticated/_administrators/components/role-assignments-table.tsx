@@ -246,19 +246,15 @@ export function RoleAssignmentsTable({
                                                     key={channel.channelId}
                                                     variant="default"
                                                     className="text-xs"
-                                                    onRemove={
-                                                        canEdit
-                                                            ? () =>
+                                                    {...(canEdit
+                                                        ? {
+                                                              onRemove: () =>
                                                                   removePairs(group.roleId, [
                                                                       channel.channelId,
-                                                                  ])
-                                                            : undefined
-                                                    }
-                                                    removeLabel={
-                                                        canEdit
-                                                            ? t`Remove ${roleLabel(group.role)} on ${channelLabel(channel.code)}`
-                                                            : undefined
-                                                    }
+                                                                  ]),
+                                                              removeLabel: t`Remove ${roleLabel(group.role)} on ${channelLabel(channel.code)}`,
+                                                          }
+                                                        : { onRemove: undefined })}
                                                     disabled={removing}
                                                 >
                                                     {onChannelSelect ? (

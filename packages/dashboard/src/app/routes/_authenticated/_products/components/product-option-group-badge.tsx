@@ -42,8 +42,9 @@ export function ProductOptionGroupBadge({
             <Chip
                 variant="default"
                 className="text-xs"
-                onRemove={canRemove ? () => setRemoveDialogOpen(true) : undefined}
-                removeLabel={canRemove ? t`Remove option group ${name}` : undefined}
+                {...(canRemove
+                    ? { onRemove: () => setRemoveDialogOpen(true), removeLabel: t`Remove option group ${name}` }
+                    : { onRemove: undefined })}
                 disabled={canRemove && isPending}
             >
                 {/* The name and the pencil are one link: a 12px pencil on its own sits too

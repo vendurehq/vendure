@@ -21,8 +21,12 @@ export function ChannelChip({
 }: Readonly<ChannelChipProps>) {
     return (
         <Chip
-            onRemove={removable && onRemove ? () => onRemove(channel.id) : undefined}
-            removeLabel={`Remove ${channel.code} from ${channel.token}`}
+            {...(removable && onRemove
+                ? {
+                      onRemove: () => onRemove(channel.id),
+                      removeLabel: `Remove ${channel.code} from ${channel.token}`,
+                  }
+                : { onRemove: undefined })}
         >
             {channel.code}
         </Chip>

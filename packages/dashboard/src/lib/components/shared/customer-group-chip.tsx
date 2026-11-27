@@ -9,8 +9,7 @@ export function CustomerGroupChip({
 }) {
     return (
         <Chip
-            onRemove={onRemove ? () => onRemove(group.id) : undefined}
-            removeLabel={`Remove ${group.name}`}
+            {...(onRemove ? { onRemove: () => onRemove(group.id), removeLabel: `Remove ${group.name}` } : { onRemove: undefined })}
         >
             {group.name}
         </Chip>

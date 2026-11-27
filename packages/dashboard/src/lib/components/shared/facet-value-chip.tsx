@@ -38,8 +38,12 @@ export function FacetValueChip({
             <TooltipTrigger
                 render={
                     <Chip
-                        onRemove={removable && onRemove ? () => onRemove(facetValue.id) : undefined}
-                        removeLabel={`Remove ${facetValue.name} from ${facetValue.facet.name}`}
+                        {...(removable && onRemove
+                            ? {
+                                  onRemove: () => onRemove(facetValue.id),
+                                  removeLabel: `Remove ${facetValue.name} from ${facetValue.facet.name}`,
+                              }
+                            : { onRemove: undefined })}
                     />
                 }
             >
