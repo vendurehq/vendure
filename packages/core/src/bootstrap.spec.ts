@@ -1,8 +1,12 @@
+import { Module } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { Type } from '@vendure/common/lib/shared-types';
+import express from 'express';
 import { getMetadataArgsStorage } from 'typeorm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runPluginConfigurations } from './bootstrap';
+import { createNestApplication, runPluginConfigurations } from './bootstrap';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
 import { RuntimeVendureConfig } from './config/vendure-config';
 // Importing the core entities registers their `customFields` embedded columns in the
@@ -336,5 +340,31 @@ describe('registerCustomEntityFields()', () => {
         } finally {
             cleanup();
         }
+    });
+});
+
+describe('createNestApplication()', () => {
+    @Module({})
+    class EmptyModule {}
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('creates the application on the given adapter', async () => {
+        const server = express();
+        const app = await createNestApplication(EmptyModule, { logger: false }, new ExpressAdapter(server));
+        await app.init();
+
+        expect(app.getHttpAdapter().getInstance()).toBe(server);
+        await app.close();
+    });
+
+    it('passes the options when no adapter is given', async () => {
+        const create = vi.spyOn(NestFactory, 'create').mockResolvedValue({} as any);
+
+        await createNestApplication(EmptyModule, { cors: true });
+
+        expect(create).toHaveBeenCalledWith(EmptyModule, { cors: true });
     });
 });

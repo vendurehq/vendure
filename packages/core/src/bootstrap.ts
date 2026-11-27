@@ -5,7 +5,7 @@ import {
     NestApplicationOptions,
 } from '@nestjs/common';
 import { NestApplicationContextOptions } from '@nestjs/common/interfaces/nest-application-context-options.interface';
-import { NestFactory } from '@nestjs/core';
+import { AbstractHttpAdapter, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
@@ -123,6 +123,32 @@ export interface BootstrapOptions {
      * @since 3.6.0
      */
     onBeforeAppListen?: (app: INestApplication) => void | Promise<void>;
+
+    /**
+     * @description
+     * The Nest HTTP adapter to create the server with, instead of a new `ExpressAdapter`. Vendure and
+     * its plugins use the Express API (`app.set()`, Express middleware), so the adapter must be
+     * Express compatible: for example an `ExpressAdapter` around an Express instance you have
+     * already configured.
+     *
+     * @example
+     * ```ts
+     * import express from 'express';
+     * import { ExpressAdapter } from '@nestjs/platform-express';
+     * import { bootstrap } from '@vendure/core';
+     * import { config } from './vendure-config';
+     *
+     * const server = express();
+     * server.get('/status', (req, res) => res.send('ok'));
+     *
+     * bootstrap(config, {
+     *   httpAdapter: new ExpressAdapter(server),
+     * });
+     * ```
+     * @default undefined
+     * @since 3.9.0
+     */
+    httpAdapter?: AbstractHttpAdapter;
 }
 
 /**
@@ -226,11 +252,15 @@ export async function bootstrap(
     setProcessContext('server');
     const { hostname, port, cors, middleware, trustProxy } = config.apiOptions;
     DefaultLogger.hideNestBoostrapLogs();
-    const app = await NestFactory.create<NestExpressApplication>(appModule.AppModule, {
-        cors,
-        logger: new Logger(),
-        ...options?.nestApplicationOptions,
-    });
+    const app = await createNestApplication(
+        appModule.AppModule,
+        {
+            cors,
+            logger: new Logger(),
+            ...options?.nestApplicationOptions,
+        },
+        options?.httpAdapter,
+    );
     DefaultLogger.restoreOriginalLogLevel();
     app.useLogger(new Logger());
     app.set('trust proxy', trustProxy);
@@ -255,6 +285,21 @@ export async function bootstrap(
     logStartupBanner('server');
     await app.get(EventBus).publish(new BootstrappedEvent());
     return app;
+}
+
+/**
+ * Creates the Nest application, on the given HTTP adapter when there is one.
+ * NestFactory.create() reads its options from the second argument when it is not an adapter,
+ * so an undefined adapter cannot simply be passed through.
+ */
+export function createNestApplication(
+    appModule: Type<any>,
+    nestOptions: NestApplicationOptions,
+    httpAdapter?: AbstractHttpAdapter,
+): Promise<NestExpressApplication> {
+    return httpAdapter
+        ? NestFactory.create<NestExpressApplication>(appModule, httpAdapter, nestOptions)
+        : NestFactory.create<NestExpressApplication>(appModule, nestOptions);
 }
 
 /**
