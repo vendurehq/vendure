@@ -297,7 +297,9 @@ function removeCompletedLogin(options: AuthOptions, record: PendingLoginRecord):
  * one written in between. Instead the file is renamed away, which takes one
  * version atomically, and a version that is not this login is put back: by
  * `link`, which never replaces a file, so an even newer login written
- * meanwhile stays, or by a rename where the filesystem has no hard links.
+ * meanwhile stays, or by a rename where the filesystem has no hard links,
+ * which can replace a login written after the check. A rename back that
+ * fails leaves the replacing login in the `.tmp` file.
  * Between the rename and the restore a new login is briefly absent, so the
  * file is first read, and one that holds another login is left alone.
  * The `.tmp` name lets `writePrivateFile` sweep a copy a killed process left.

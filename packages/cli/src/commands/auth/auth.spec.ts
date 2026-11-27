@@ -722,9 +722,19 @@ describe('vendure auth wait', () => {
         expect(device.polls()).toBe(1);
     });
 
-    it('keeps a login that replaced the one it finished, and removes the outcome of the finished one', async () => {
+    it('keeps a login that replaced the one it finished, and removes an earlier outcome', async () => {
         const device = deviceLoginAnswers();
         await startPending(device);
+        const outcome = getFinishedLoginPath(dependencies);
+        writeFileSync(
+            outcome,
+            JSON.stringify({
+                version: 1,
+                consoleApiUrl: 'https://api.vendure.io',
+                deviceCodeHash: 'a'.repeat(64),
+                outcome: 'denied',
+            }),
+        );
         const replacing: typeof globalThis.fetch = async (url, init) => {
             const response = await device.fetch(url, init);
             if (String(url) === AUTHENTICATE_URL) {
