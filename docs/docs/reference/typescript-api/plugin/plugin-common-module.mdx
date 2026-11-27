@@ -2,7 +2,7 @@
 title: "PluginCommonModule"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/plugin/plugin-common.module.ts" sourceLine="28" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/plugin/plugin-common.module.ts" sourceLine="31" packageName="@vendure/core" />
 
 This module provides the common services, configuration, and event bus capabilities
 required by a typical plugin. It should be imported into plugins to avoid having to
@@ -14,6 +14,7 @@ The PluginCommonModule exports:
 * `ServiceModule` allowing the injection of any of the various entity services such as ProductService, OrderService etc.
 * `ConfigModule`, allowing the injection of the ConfigService.
 * `JobQueueModule`, allowing the injection of the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
+* The [IdArgumentDecoder](/reference/typescript-api/request/id-argument-decoder#idargumentdecoder), which a field resolver uses to decode the ID values in its arguments.
 
 ```ts title="Signature"
 class PluginCommonModule {

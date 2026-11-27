@@ -76,3 +76,32 @@ function projectLoadError(packageName: string, projectRoot: string, cause: unkno
 export function requireProjectCore(cwd?: string): typeof import('@vendure/core') {
     return requireFromProject<typeof import('@vendure/core')>('@vendure/core', cwd);
 }
+
+let runningInCliDepth = 0;
+let runningInCliBefore: string | undefined;
+
+/**
+ * Runs a function of the project's `@vendure/core` with `VENDURE_RUNNING_IN_CLI` set. With it,
+ * core's migration functions print nothing, and throw instead of setting an exit code. Calls may
+ * overlap, as in a test that runs commands in parallel: the variable stays set until the last one
+ * ends, and is then restored to the value it had before the first.
+ */
+export async function withCoreRunningInCli<T>(fn: () => Promise<T>): Promise<T> {
+    if (runningInCliDepth === 0) {
+        runningInCliBefore = process.env.VENDURE_RUNNING_IN_CLI;
+    }
+    runningInCliDepth++;
+    process.env.VENDURE_RUNNING_IN_CLI = 'true';
+    try {
+        return await fn();
+    } finally {
+        runningInCliDepth--;
+        if (runningInCliDepth === 0) {
+            if (runningInCliBefore === undefined) {
+                delete process.env.VENDURE_RUNNING_IN_CLI;
+            } else {
+                process.env.VENDURE_RUNNING_IN_CLI = runningInCliBefore;
+            }
+        }
+    }
+}

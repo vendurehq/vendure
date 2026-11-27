@@ -3,9 +3,10 @@
  *
  * These spawn the built CLI (`dist/cli.js`) against a temporary project, with
  * one fixture standing in for `@vendure-platform/cli` and another for
- * `@vendure/cloud`, both wrapping the built-in `dev`.
+ * `@vendure/cloud`, both wrapping the built-in `start`. `vendure dev` is declared
+ * with `defineCommand`, which these Commander extensions cannot wrap.
  *
- * `dev bogus` is used to drive the whole chain: the built-in rejects an unknown
+ * `start bogus` is used to drive the whole chain: the built-in rejects an unknown
  * target before it starts any process, so the test observes both wrappers and
  * the built-in running without a server being spawned. The built-in reports the
  * bad target through the CLI logger and returns exit code 1.
@@ -50,7 +51,7 @@ describe('Several plugins extending one command', () => {
     });
 
     it('runs both wrappers and the built-in in one invocation', async () => {
-        const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
+        const result = await project.runCliCommand(['start', 'bogus'], { expectError: true });
 
         expect(traceOf(result.stdout)).toEqual([
             'CLOUD_BEFORE',
@@ -60,48 +61,64 @@ describe('Several plugins extending one command', () => {
         ]);
         // The built-in ran: it is what rejects the unknown target, and it
         // reports through the CLI's own logger rather than throwing.
-        expect(result.stdout).toContain('Unknown dev target "bogus"');
+        expect(result.stdout).toContain('Unknown start target "bogus"');
         expect(result.exitCode).toBe(1);
     });
 
     it('gives each wrapper the options and context the host parsed', async () => {
         const result = await project.runCliCommand(
-            ['dev', 'bogus', '--rotate-credential', '--cloud-env', 'staging'],
+            ['start', 'bogus', '--rotate-credential', '--cloud-env', 'staging'],
             { expectError: true },
         );
 
         expect(readMarker(result.stdout, 'PLATFORM_BEFORE')).toEqual({
-            command: ['dev'],
+            command: ['start'],
             rotate: true,
+            token: null,
         });
         expect(readMarker(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
     });
 
+    it('gives a decorator the value of a root option from the plugin', async () => {
+        const result = await project.runCliCommand(['start', 'bogus', '--token', 'abc'], {
+            expectError: true,
+        });
+
+        expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
+    });
+
+    it('accepts a root option before the command too', async () => {
+        const result = await project.runCliCommand(['--token', 'abc', 'start', 'bogus'], {
+            expectError: true,
+        });
+
+        expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
+    });
+
     it('hands the outer plugin the command the inner one already extended', async () => {
-        const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
+        const result = await project.runCliCommand(['start', 'bogus'], { expectError: true });
 
         // The Cloud fixture is listed last, so it sees the option Platform added.
         expect(readMarker(result.stdout, 'CLOUD_BEFORE').sawOptions).toContain('--rotate-credential');
     });
 
-    it('shows every plugin option in dev help', async () => {
-        const result = await project.runCliCommand(['dev', '--help']);
+    it('shows every plugin option in start help', async () => {
+        const result = await project.runCliCommand(['start', '--help']);
 
         expect(result.stdout).toContain('--rotate-credential');
         expect(result.stdout).toContain('--cloud-env');
         // The built-in options survive.
-        expect(result.stdout).toContain('--no-reload');
         expect(result.stdout).toContain('--server-entry');
     });
 
     it('shows the extended description in root help', async () => {
         const result = await project.runCliCommand(['--help']);
 
-        expect(result.stdout).toContain('Run Vendure in development mode with linked Platform credentials');
+        expect(result.stdout).toContain('Start a built Vendure project with linked Platform credentials');
     });
 
     it('still rejects an unknown option on the extended command', async () => {
-        const result = await project.runCliCommand(['dev', '--nope'], { expectError: true });
+        const result = await project.runCliCommand(['start', '--nope'], { expectError: true });
 
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toContain("unknown option '--nope'");
@@ -115,7 +132,7 @@ describe('Extension order follows the activation order', () => {
             installCliPluginFixture(project, 'cloud-dev-cli-plugin');
             installCliPluginFixture(project, 'platform-cli-plugin');
 
-            const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
+            const result = await project.runCliCommand(['start', 'bogus'], { expectError: true });
 
             expect(traceOf(result.stdout)).toEqual([
                 'PLATFORM_BEFORE',
@@ -137,17 +154,13 @@ describe('Extension collisions and recovery', () => {
             installCliPluginFixture(project, 'platform-cli-plugin');
             const broken = installCliPluginFixture(project, 'broken-decorator-cli-plugin');
 
-            const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
+            const result = await project.runCliCommand(['start', 'bogus'], { expectError: true });
 
             expect(result.stderr).toContain('Failed to register CLI plugin');
             expect(result.stderr).toContain('This decorator is broken on purpose');
             expect(result.stderr).toContain(`vendure plugins remove ${broken}`);
             // The working plugin is untouched, and nothing from the broken one landed.
             expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
-
-            const unknown = await project.runCliCommand(['broken-extra'], { expectError: true });
-            expect(unknown.exitCode).toBe(1);
-            expect(unknown.stderr).toContain('Unknown command "broken-extra"');
 
             const removed = await project.runCliCommand(['plugins', 'remove', broken]);
             expect(removed.exitCode).toBe(0);
@@ -156,34 +169,24 @@ describe('Extension collisions and recovery', () => {
             project.cleanup();
         }
     });
+});
 
-    it('refuses to replace a command another plugin has extended', async () => {
-        const project = createTestProject('cli-plugin-replace-extended');
+describe('Root option collisions', () => {
+    it('reports a plugin that repeats a root option, keeping the first plugin working', async () => {
+        const project = createTestProject('cli-plugin-root-option-clash');
         try {
-            const platform = installCliPluginFixture(project, 'platform-cli-plugin');
-            installCliPluginFixture(project, 'dev-replacement-cli-plugin');
-
-            const result = await project.runCliCommand(['dev', 'bogus'], { expectError: true });
-
-            expect(result.stderr).toContain(`has been extended by ${platform}`);
-            expect(result.stdout).not.toContain('REPLACEMENT_DEV');
-            expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
-        } finally {
-            project.cleanup();
-        }
-    });
-
-    it('extends a replacement when the replacing plugin is listed first', async () => {
-        const project = createTestProject('cli-plugin-replace-then-extend');
-        try {
-            installCliPluginFixture(project, 'dev-replacement-cli-plugin');
             installCliPluginFixture(project, 'platform-cli-plugin');
+            const clashing = installCliPluginFixture(project, 'clashing-root-option-cli-plugin');
 
-            const result = await project.runCliCommand(['dev']);
+            const result = await project.runCliCommand(['start', 'bogus', '--token', 'abc'], {
+                expectError: true,
+            });
 
-            expect(result.exitCode).toBe(0);
-            expect(result.stdout).toContain('REPLACEMENT_DEV');
+            expect(result.stderr).toContain('Failed to register CLI plugin');
+            expect(result.stderr).toContain('--token');
+            expect(result.stderr).toContain(`vendure plugins remove ${clashing}`);
             expect(traceOf(result.stdout)).toEqual(['PLATFORM_BEFORE', 'PLATFORM_AFTER']);
+            expect(readMarker(result.stdout, 'PLATFORM_BEFORE').token).toBe('abc');
         } finally {
             project.cleanup();
         }
@@ -192,10 +195,13 @@ describe('Extension collisions and recovery', () => {
 
 describe('Workspace project plugin loading', () => {
     let project: CliTestProject;
+    const extension = '@vendure-e2e/extension-cli-plugin';
 
     beforeAll(() => {
         project = createTestProject('cli-workspace-plugins');
-        installCliPluginFixture(project, 'cloud-dev-cli-plugin');
+        // A plugin that extends `dev` shows which project's plugins were loaded for it: its flag
+        // is in the help of `dev` only when the plugin loaded.
+        installCliPluginFixture(project, 'extension-cli-plugin');
         const server = path.join(project.projectDir, 'server');
         mkdirSync(server);
         for (const name of ['package.json', 'node_modules']) {
@@ -206,45 +212,39 @@ describe('Workspace project plugin loading', () => {
 
     afterAll(() => project.cleanup());
 
-    it.each([
-        ['dev', 'bogus'],
-        ['dev', 'bogus', '--project', 'server'],
-        ['dev', 'bogus', '--project=server'],
-    ])('loads the member plugin before parsing %j', async (...args) => {
-        const result = await project.runCliCommand([...args, '--cloud-env', 'staging'], {
-            expectError: true,
-        });
-        expect(traceOf(result.stdout)).toEqual(['CLOUD_BEFORE', 'CLOUD_AFTER']);
-        expect(readMarker(result.stdout, 'CLOUD_BEFORE').cloudEnv).toBe('staging');
-        expect(result.stdout).toContain('Unknown dev target "bogus"');
-    });
+    it.each([['dev'], ['dev', '--dir', 'server'], ['dev', '--dir=server']])(
+        'loads the member plugin before parsing %j',
+        async (...args) => {
+            const result = await project.runCliCommand([...args, '--help']);
+            expect(result.stdout).toContain('--cloud-project');
+        },
+    );
 
     it('uses the member allowlist for plugin management', async () => {
         const listed = await project.runCliCommand(['plugins', '--json']);
         expect(JSON.parse(listed.stdout).plugins).toContainEqual(
-            expect.objectContaining({
-                packageName: '@vendure-e2e/cloud-dev-cli-plugin',
-                scope: 'project',
-                status: 'enabled',
-            }),
+            expect.objectContaining({ packageName: extension, scope: 'project', status: 'enabled' }),
         );
         try {
-            await project.runCliCommand(['plugins', 'remove', '@vendure-e2e/cloud-dev-cli-plugin']);
+            await project.runCliCommand(['plugins', 'remove', extension]);
             expect(JSON.parse(project.readFile('server/package.json')).vendure.cli.plugins).toEqual([]);
             expect(JSON.parse(project.readFile('package.json')).vendure).toBeUndefined();
         } finally {
-            await project.runCliCommand(['plugins', 'add', '@vendure-e2e/cloud-dev-cli-plugin']);
+            await project.runCliCommand(['plugins', 'add', extension]);
         }
     });
 
     it('rejects an invalid explicit project before loading plugins', async () => {
-        const result = await project.runCliCommand(['dev', '--project', 'missing'], { expectError: true });
+        // With --help, a loaded plugin's extension would list --cloud-project.
+        const result = await project.runCliCommand(['dev', '--dir', 'missing', '--help'], {
+            expectError: true,
+        });
         expect(result.exitCode).toBe(1);
-        expect(result.stderr).toContain('Invalid --project directory');
-        expect(traceOf(result.stdout)).toEqual([]);
+        expect(result.stderr).toContain('Invalid --dir directory');
+        expect(result.stdout).not.toContain('--cloud-project');
     });
 
-    it('reports ambiguous members and lets --project select one', async () => {
+    it('reports ambiguous members and lets --dir select one', async () => {
         project.writeFile('other/package.json', JSON.stringify({ dependencies: { '@vendure/core': '*' } }));
         project.writeFile('package.json', JSON.stringify({ workspaces: ['server', 'other'] }));
         try {
@@ -253,7 +253,12 @@ describe('Workspace project plugin loading', () => {
             expect(result.stderr).toContain(
                 `Multiple Vendure projects found in "${project.projectDir}": other, server.`,
             );
-            expect(result.stderr).toContain('Use --project <dir>');
+            expect(result.stderr).toContain('Use --dir <dir>');
+            // A loaded member's extension would list --cloud-project in the help.
+            const devHelp = await project.runCliCommand(['dev', '--help']);
+            expect(devHelp.stderr).toContain('Multiple Vendure projects found');
+            expect(devHelp.stdout).toContain('Usage: vendure dev');
+            expect(devHelp.stdout).not.toContain('--cloud-project');
             const help = await project.runCliCommand(['--help']);
             expect(help.stdout).toContain('Usage: vendure');
             expect(help.stderr).toContain('Multiple Vendure projects found');
@@ -261,19 +266,16 @@ describe('Workspace project plugin loading', () => {
             expect(() => JSON.parse(doctor.stdout)).not.toThrow();
             const rootPackage = project.readFile('package.json');
             const serverPackage = project.readFile('server/package.json');
-            const removed = await project.runCliCommand(
-                ['plugins', 'remove', '@vendure-e2e/cloud-dev-cli-plugin'],
-                { expectError: true },
-            );
+            const removed = await project.runCliCommand(['plugins', 'remove', extension], {
+                expectError: true,
+            });
             expect(removed.exitCode).toBe(1);
             expect(removed.stderr).toContain('Multiple Vendure projects found');
             expect(project.readFile('package.json')).toBe(rootPackage);
             expect(project.readFile('server/package.json')).toBe(serverPackage);
 
-            const selected = await project.runCliCommand(['dev', 'bogus', '--project', 'server'], {
-                expectError: true,
-            });
-            expect(traceOf(selected.stdout)).toEqual(['CLOUD_BEFORE', 'CLOUD_AFTER']);
+            const selected = await project.runCliCommand(['dev', '--dir', 'server', '--help']);
+            expect(selected.stdout).toContain('--cloud-project');
         } finally {
             project.writeFile('package.json', JSON.stringify({ workspaces: ['server'] }));
         }

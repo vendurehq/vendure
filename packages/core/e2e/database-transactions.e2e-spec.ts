@@ -1,4 +1,4 @@
-import { mergeConfig } from '@vendure/core';
+import { mergeConfig, TransactionSubscriber } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'assert';
 import path from 'path';
@@ -8,6 +8,9 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
+    FAILED_AFTER_RETRY,
+    nestedDeadlock,
+    TRANSACTION_ENDED_BY_DATABASE,
     TransactionTestPlugin,
     TRIGGER_ATTEMPTED_READ_EMAIL,
     TRIGGER_ATTEMPTED_UPDATE_EMAIL,
@@ -15,7 +18,7 @@ import {
 } from './fixtures/test-plugins/transaction-test-plugin';
 import { FragmentOf, graphql } from './graphql/graphql-admin';
 
-type DBType = 'mysql' | 'postgres' | 'sqlite' | 'sqljs';
+type DBType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite' | 'sqljs';
 
 const itIfDb = (dbs: DBType[]) => {
     return dbs.includes((process.env.DB as DBType) || 'sqljs') ? it : it.skip;
@@ -214,6 +217,65 @@ describe('Transaction infrastructure', () => {
         expect(verify.users.filter(u => u.identifier.includes('testNestedTransactionsN'))).toHaveLength(1);
     });
 
+    // Relates to #4152. See TransactionWrapper.rollbackAfterError(). Not handled on SQLite drivers.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
+        'releases the connection when the database ends the transaction inside a nested transaction',
+        async () => {
+            TransactionTestPlugin.reset();
+            const transactionSubscriber = server.app.get(TransactionSubscriber);
+            const pendingTransactionWaits = () => (transactionSubscriber as any).subject$.observers.length;
+            const pendingBefore = pendingTransactionWaits();
+
+            // More failures than the default pool of 10 connections can absorb.
+            for (let i = 1; i <= 12; i++) {
+                await withTimeout(
+                    expect(
+                        adminClient.query(failAfterDatabaseEndedNestedTransactionDocument),
+                    ).rejects.toThrow(TRANSACTION_ENDED_BY_DATABASE),
+                    5000,
+                    `Request ${i} did not complete: the connection pool has run out of connections`,
+                );
+            }
+
+            // The event published in each failed transaction is dropped, rather than left
+            // waiting for a commit which will never come.
+            expect(pendingTransactionWaits()).toBe(pendingBefore);
+            expect(TransactionTestPlugin.callHandler).not.toHaveBeenCalled();
+        },
+    );
+
+    // Relates to #4152. After a deadlock inside a nested transaction, the database has ended the
+    // transaction, so the retry must start from a clean connection rather than roll back again.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
+        'retries a deadlock which happened inside a nested transaction',
+        async () => {
+            nestedDeadlock.attempts = 0;
+            const { retryAfterDeadlockInNestedTransaction } = await adminClient.query(
+                retryAfterDeadlockInNestedTransactionDocument,
+            );
+            expect(retryAfterDeadlockInNestedTransaction).toBe(2);
+            await adminClient.query(verifyTestDocument);
+        },
+    );
+
+    // Relates to #4152. The retry continues on a fresh QueryRunner, so the work of the retried
+    // attempt has to run in that runner's transaction: if a later failure rolls it back, nothing of
+    // the attempt may remain.
+    itIfDb(['postgres', 'mysql', 'mariadb'])(
+        'rolls back the retried attempt as a whole when it fails',
+        async () => {
+            nestedDeadlock.attempts = 0;
+            const emailAddress = 'created-in-retried-attempt';
+            await expect(
+                adminClient.query(failAfterRetryingDeadlockInNestedTransactionDocument, { emailAddress }),
+            ).rejects.toThrow(FAILED_AFTER_RETRY);
+
+            expect(nestedDeadlock.attempts).toBe(2);
+            const { verify } = await adminClient.query<VerifyResult>(verifyTestDocument);
+            expect(verify.admins.filter(a => a.emailAddress === emailAddress)).toHaveLength(0);
+        },
+    );
+
     it('event do not publish after transaction rollback', async () => {
         TransactionTestPlugin.reset();
         try {
@@ -379,6 +441,36 @@ const createNTestAdministrators2Document = graphql(`
 const createNTestAdministrators3Document = graphql(`
     mutation CreateNTestAdmins3($emailAddress: String!, $failFactor: Float!, $n: Int!) {
         createNTestAdministrators3(emailAddress: $emailAddress, failFactor: $failFactor, n: $n)
+    }
+`);
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+    });
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+const failAfterRetryingDeadlockInNestedTransactionDocument = graphql(`
+    mutation FailAfterRetryingDeadlockInNestedTransaction($emailAddress: String!) {
+        failAfterRetryingDeadlockInNestedTransaction(emailAddress: $emailAddress)
+    }
+`);
+
+const retryAfterDeadlockInNestedTransactionDocument = graphql(`
+    mutation RetryAfterDeadlockInNestedTransaction {
+        retryAfterDeadlockInNestedTransaction
+    }
+`);
+
+const failAfterDatabaseEndedNestedTransactionDocument = graphql(`
+    mutation FailAfterDatabaseEndedNestedTransaction {
+        failAfterDatabaseEndedNestedTransaction
     }
 `);
 

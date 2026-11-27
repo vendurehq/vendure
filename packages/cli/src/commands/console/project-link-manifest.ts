@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { findProjectDirectoryHints, MONOREPO_PACKAGE_DIRS } from '../../utilities/monorepo-utils.js';
 
+import { ConsoleCliError } from './console-cli-error.js';
 import {
     ConsoleOrigins,
     DEFAULT_CONSOLE_API_URL,
@@ -60,16 +61,16 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
         } else {
             const candidates = findWorkspaceVendureProjects(resolvedCwd);
             if (candidates.length === 0) {
-                throw new Error(
-                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass --project <path>.' +
+                throw new ConsoleCliError(
+                    'Could not find a Vendure project. Run this command from a project that depends on @vendure/core, or pass its path as dir.' +
                         projectDirectoryHint(resolvedCwd),
                 );
             }
             if (candidates.length > 1) {
-                throw new Error(
+                throw new ConsoleCliError(
                     `Multiple Vendure projects were found:\n${candidates
                         .map(candidate => `   ${candidate}`)
-                        .join('\n')}\nRun the command again with --project <path>.`,
+                        .join('\n')}\nPass the path of one of them as dir.`,
                 );
             }
             projectRoot = candidates[0];
@@ -80,17 +81,17 @@ export function resolveProjectRoot(cwd: string, selectedProject?: string): strin
     return projectRoot;
 }
 
-/** Names the likely project directories and the matching `--project` flag. Empty when there are none. */
+/** Names the likely project directories, to pass as `dir`. Empty when there are none. */
 function projectDirectoryHint(cwd: string): string {
     const hints = findProjectDirectoryHints(cwd);
     if (hints.length === 0) {
         return '';
     }
     if (hints.length === 1) {
-        return `\nFound a Vendure project in \`${hints[0]}\`. Run the command there, or pass \`--project ${hints[0]}\`.`;
+        return `\nFound a Vendure project in \`${hints[0]}\`. Run the command there, or pass \`${hints[0]}\` as dir.`;
     }
     const list = hints.map(hint => `   ${hint}`).join('\n');
-    return `\nFound Vendure projects in:\n${list}\nRun the command in one of them, or pass --project <path>, for example \`--project ${hints[0]}\`.`;
+    return `\nFound Vendure projects in:\n${list}\nRun the command in one of them, or pass its path as dir, for example \`${hints[0]}\`.`;
 }
 
 export function getProjectLinkManifestPath(projectRoot: string): string {
@@ -127,7 +128,7 @@ export function readProjectLinkManifest(projectRoot: string): ManifestReadResult
 export function parseProjectLinkManifest(value: unknown, expectedLinkId?: string): ProjectLinkManifest {
     const candidate = objectValue(value, 'The manifest must be an object.');
     if (candidate.schemaVersion !== 1) {
-        throw new Error('The manifest schemaVersion must be 1.');
+        throw new ConsoleCliError('The manifest schemaVersion must be 1.');
     }
     const hasConsole = Object.prototype.hasOwnProperty.call(candidate, 'console');
     const root = exactObject(
@@ -143,10 +144,10 @@ export function parseProjectLinkManifest(value: unknown, expectedLinkId?: string
     const link = exactObject(root.link, ['id', 'protocolVersion'], 'link');
     const linkId = uuid(link.id, 'The link.id must be a UUID.');
     if (link.protocolVersion !== 1) {
-        throw new Error('The manifest link.protocolVersion must be 1.');
+        throw new ConsoleCliError('The manifest link.protocolVersion must be 1.');
     }
     if (expectedLinkId && linkId !== expectedLinkId) {
-        throw new Error('The approved manifest does not match the created link request.');
+        throw new ConsoleCliError('The approved manifest does not match the created link request.');
     }
 
     const identity: ProjectLinkManifestIdentity = {
@@ -212,7 +213,7 @@ export async function writeProjectLinkManifestAtomic(
         }
         await operations.unlink(temporaryPath).catch(() => undefined);
         const detail = error instanceof Error ? error.message : String(error);
-        throw new Error(`Could not write ${manifestPath} atomically: ${detail}`);
+        throw new ConsoleCliError(`Could not write ${manifestPath} atomically: ${detail}`);
     }
 }
 
@@ -276,7 +277,7 @@ function assertNoCrossRootManifest(cwd: string, projectRoot: string): void {
             fs.existsSync(ancestorManifest) &&
             path.resolve(ancestorManifest) !== path.resolve(targetManifest)
         ) {
-            throw new Error(
+            throw new ConsoleCliError(
                 [
                     'A Project Link Manifest exists outside the selected Vendure project.',
                     `   Existing: ${ancestorManifest}`,
@@ -334,7 +335,9 @@ function isPathWithin(parent: string, candidate: string): boolean {
 
 function assertVendureProject(projectRoot: string): void {
     if (!hasVendureCoreDependency(projectRoot)) {
-        throw new Error(`${projectRoot} is not a Vendure project with a direct @vendure/core dependency.`);
+        throw new ConsoleCliError(
+            `${projectRoot} is not a Vendure project with a direct @vendure/core dependency.`,
+        );
     }
 }
 
@@ -359,11 +362,11 @@ function realDirectory(directory: string, label: string): string {
     try {
         const realPath = fs.realpathSync(directory);
         if (!fs.statSync(realPath).isDirectory()) {
-            throw new Error('not a directory');
+            throw new ConsoleCliError('not a directory');
         }
         return realPath;
     } catch {
-        throw new Error(`${label} does not exist or is not a directory: ${directory}`);
+        throw new ConsoleCliError(`${label} does not exist or is not a directory: ${directory}`);
     }
 }
 

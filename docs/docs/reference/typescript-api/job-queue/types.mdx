@@ -4,7 +4,7 @@ generated: true
 ---
 ## BackoffStrategy
 
-<GenerationInfo sourceFile="packages/core/src/job-queue/polling-job-queue-strategy.ts" sourceLine="22" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/job-queue/polling-job-queue-strategy.ts" sourceLine="23" packageName="@vendure/core" />
 
 Defines the backoff strategy used when retrying failed jobs. Returns the delay in
 ms that should pass before the failed job is retried.
@@ -116,6 +116,7 @@ interface JobConfig<T extends JobData<T>> {
     createdAt?: Date;
     startedAt?: Date;
     settledAt?: Date;
+    requestId?: string;
 }
 ```
 
@@ -181,6 +182,11 @@ interface JobConfig<T extends JobData<T>> {
 <MemberInfo kind="property" type={`Date`}   />
 
 
+### requestId
+
+<MemberInfo kind="property" type={`string`}  since="4.0.0"  />
+
+The ID of the API request which added the job. See [getRequestId](/reference/typescript-api/logger/get-request-id#getrequestid).
 
 
 </div>

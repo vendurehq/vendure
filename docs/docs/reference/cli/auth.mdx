@@ -1,0 +1,145 @@
+---
+title: "vendure auth"
+generated: true
+---
+
+
+<a name="auth-login"></a>
+
+## vendure auth login
+
+Sign in to your Vendure account. Without a terminal, or with --json, returns the URL and code to approve at once; `auth wait` finishes the login.
+
+```bash
+vendure auth login [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `auth_login`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--organization <organization>` | string | Sign in to this organization: its Account identifier (Vendure Console → Settings) or its name, ignoring case. |
+
+### Errors
+
+- `auth.console-api-invalid` (exit code 1)
+- `auth.login-failed` (exit code 1)
+- `auth.login-denied` (exit code 1)
+- `auth.login-expired` (exit code 1)
+- `cli.cancelled` (exit code 130)
+
+### Examples
+
+```bash
+vendure auth login
+vendure auth login --organization "Bromley Art Supplies"
+vendure auth login --json
+```
+
+<a name="auth-logout"></a>
+
+## vendure auth logout
+
+End the session and remove the login from this machine.
+
+```bash
+vendure auth logout
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `auth_logout`
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `removed` | boolean | Whether a login was stored on this machine. It is gone either way. |
+| `sessionEnded` | boolean | Whether Vendure Console ended the session, so copies of the login stop working too. |
+
+### Errors
+
+- `auth.logout-failed` (exit code 1)
+
+### Examples
+
+```bash
+vendure auth logout
+```
+
+<a name="auth-status"></a>
+
+## vendure auth status
+
+Show who is signed in, after checking that the login can still be renewed. Never shows a token.
+
+```bash
+vendure auth status
+```
+
+- **Behavior:** `readonly`. Read-only. It changes nothing.
+- **Developer MCP tool:** `auth_status`
+
+### Output
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `loggedIn` | boolean |  |
+| `consoleApiUrl` | string |  |
+| `path` | string | Where the login is stored. |
+| `clientId` (optional) | string | The WorkOS client that issued the login. |
+| `user` (optional) | object |  |
+| `organization` (optional) | object or null |  |
+| `accessTokenExpiresAt` (optional) | number | When the access token expires, as epoch milliseconds. It is renewed automatically. |
+| `renewable` (optional) | boolean | True when the login was renewed, false when it can no longer be renewed. Absent when the check could not finish. |
+| `renewalError` (optional) | object |  |
+| `credential` | `"stored-login"` or `"environment"` or `"none"` | The credential commands use: the stored login, VENDURE_CLOUD_TOKEN when no login is stored, or none. |
+| `otherConsoleLogin` (optional) | boolean | True when the stored login is for another Vendure Console. |
+
+### Errors
+
+- `auth.console-api-invalid` (exit code 1)
+
+### Examples
+
+```bash
+vendure auth status
+vendure auth status --json
+```
+
+<a name="auth-wait"></a>
+
+## vendure auth wait
+
+Wait until the login that `auth login --json` started is approved. Returns the pending login again when the timeout passes first.
+
+```bash
+vendure auth wait [options]
+```
+
+- **Behavior:** `mutating`. Changes files, the database or the dev server.
+- **Developer MCP tool:** `auth_wait`
+
+### Options
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `--timeout <timeout>` | number | How many seconds to wait for approval. Defaults to 30 when called as an MCP tool, and otherwise to the rest of the code lifetime. |
+
+### Errors
+
+- `auth.console-api-invalid` (exit code 1)
+- `auth.no-pending-login` (exit code 1)
+- `auth.login-failed` (exit code 1)
+- `auth.login-denied` (exit code 1)
+- `auth.login-expired` (exit code 1)
+- `cli.cancelled` (exit code 130)
+
+### Examples
+
+```bash
+vendure auth wait
+vendure auth wait --timeout 60 --json
+```

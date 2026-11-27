@@ -18,7 +18,7 @@ import {
 import { idSchema, int32Schema, McpTool, McpToolHandler, shortText } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { findOrderOrThrow, ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
+import { describeOrder, findOrderOrThrow, ORDER_DETAIL_RELATIONS } from '../order-list-helpers';
 import { McpToolSerializerService } from '../serializer.service';
 
 const createFulfillmentInput = z.strictObject({
@@ -79,6 +79,21 @@ export class CreateFulfillmentTool implements McpToolHandler<CreateFulfillmentIn
         private readonly serializer: McpToolSerializerService,
         private readonly connection: TransactionalConnection,
     ) {}
+
+    async describe(ctx: RequestContext, input: CreateFulfillmentInput) {
+        const order = await findOrderOrThrow(this.orderService, ctx, input.id, ORDER_DETAIL_RELATIONS);
+        const lines = input.lines ? this.linesOfOrder(order, input.lines) : unfulfilledLines(order);
+        const quantities = lines
+            .map(line => `${line.quantity} of line ${String(line.orderLineId)}`)
+            .join(', ');
+        const tracking = input.trackingCode ? ` with tracking code ${input.trackingCode}` : '';
+        const state = input.state ? ` and mark it ${input.state}` : ', left Pending';
+        return (
+            `Fulfill ${quantities || 'no lines'} of ` +
+            `${describeOrder(order, value => this.serializer.decimal(value))} by ${input.method}` +
+            `${tracking}${state}. A fulfillment and its stock movement cannot be undone.`
+        );
+    }
 
     async execute(ctx: RequestContext, input: CreateFulfillmentInput) {
         const order = await findOrderOrThrow(this.orderService, ctx, input.id, ORDER_DETAIL_RELATIONS);

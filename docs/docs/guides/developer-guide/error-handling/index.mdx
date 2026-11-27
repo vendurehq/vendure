@@ -43,7 +43,9 @@ In the GraphQL APIs, these errors are returned in the standard `errors` array:
         "me"
       ],
       "extensions": {
-        "code": "FORBIDDEN"
+        "code": "FORBIDDEN",
+        "vendureCode": "core.forbidden",
+        "requestId": "3f0c1a2e-8a4b-4c55-9d1e-6b7a0e2f9c11"
       }
     }
   ],
@@ -52,11 +54,18 @@ In the GraphQL APIs, these errors are returned in the standard `errors` array:
   }
 }
 ```
+
 So your client applications need a generic way of detecting and handling this kind of error. For example, many http client libraries support "response interceptors" which can be used to intercept all API responses and check the `errors` array.
 
 :::note
 GraphQL will return a `200` status even if there are errors in the `errors` array. This is because in GraphQL it is still possible to return good data _alongside_ any errors.
 :::
+
+The `extensions` of every error carry:
+
+- `code`, a broad category such as `FORBIDDEN` or `USER_INPUT_ERROR`.
+- `vendureCode`, a stable, namespaced code for the specific error, such as `core.forbidden`. Errors which have no code of their own have `core.unexpected`.
+- `requestId`, the ID of the request. It is the same as the `x-request-id` response header and the `requestId` on the server's log lines, so a client which reports an error can include it to find the matching log lines.
 
 Here's how it might look in a simple Fetch-based client:
 

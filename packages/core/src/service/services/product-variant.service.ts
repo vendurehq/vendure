@@ -174,7 +174,9 @@ export class ProductVariantService {
         ctx: RequestContext,
         options?: ListQueryOptions<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
-        const relations = ['featuredAsset', 'taxCategory', 'channels'];
+        // No `channels`: it brings one row per Channel with every variant. The list query builder
+        // joins the active Channel itself, and the `channels` field resolver loads its own.
+        const relations = ['featuredAsset', 'taxCategory'];
         const customPropertyMap: { [name: string]: string } = {};
         const hasFacetValueIdFilter =
             this.listQueryBuilder.filterObjectHasProperty<ProductVariantFilterParameter>(
@@ -376,13 +378,13 @@ export class ProductVariantService {
     }
 
     getFacetValuesForVariant(ctx: RequestContext, variantId: ID): Promise<Array<Translated<FacetValue>>> {
+        // `channels` is not loaded: the values are already limited to the active Channel.
         return this.connection
-            .findOneInChannel(ctx, ProductVariant, variantId, ctx.channelId, {
-                relations: ['facetValues', 'facetValues.facet', 'facetValues.channels'],
+            .findInChannel(ctx, FacetValue, ctx.channelId, {
+                where: { productVariants: { id: variantId, channels: { id: ctx.channelId } } },
+                relations: { facet: true },
             })
-            .then(variant =>
-                !variant ? [] : variant.facetValues.map(o => this.translator.translate(o, ctx, ['facet'])),
-            );
+            .then(facetValues => facetValues.map(value => this.translator.translate(value, ctx, ['facet'])));
     }
 
     /**

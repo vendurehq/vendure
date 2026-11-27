@@ -1,0 +1,499 @@
+---
+title: "Presets"
+generated: true
+---
+## applyPreset
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/apply-preset.ts" sourceLine="57" packageName="@vendure/core" since="4.0.0" />
+
+Applies a base-data preset to the default Channel, in one transaction. The preset's data and the
+`vendure.seed.preset` sentinel commit together, or nothing is written.
+
+It refuses with a [SeedError](/reference/typescript-api/import-export/presets#seederror):
+
+- `core.preset-unknown` or `core.preset-invalid-option` when the name or the options are wrong;
+- `core.preset-database-not-empty` when the database is not empty: it has countries, zones,
+  tax categories or rates, shipping or payment methods, products, more than one Channel, or a
+  preset sentinel.
+
+Errors are never swallowed: any failure rolls the transaction back and is thrown.
+
+*Example*
+
+```ts
+import { applyPreset, bootstrapWorker } from '@vendure/core';
+
+const { app } = await bootstrapWorker(config);
+const result = await applyPreset(app, 'single-country', { country: 'NZ', currency: 'NZD' });
+await app.close();
+```
+
+```ts title="Signature"
+function applyPreset(app: INestApplicationContext, presetName: string, options: Record<string, string> = {}): Promise<PresetResult>
+```
+Parameters
+
+### app
+
+<MemberInfo kind="parameter" type={`INestApplicationContext`} />
+
+### presetName
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`Record<string, string>`} />
+
+## PresetDescription
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-registry.ts" sourceLine="18" packageName="@vendure/core" since="4.0.0" />
+
+A preset as [listPresets](/reference/typescript-api/import-export/presets#listpresets) describes it.
+
+```ts title="Signature"
+interface PresetDescription {
+    name: string;
+    description: string;
+    options: Record<string, PresetOptionDefinition>;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### options
+
+<MemberInfo kind="property" type={`Record<string, <a href='/reference/typescript-api/import-export/presets#presetoptiondefinition'>PresetOptionDefinition</a>>`}   />
+
+
+
+
+</div>
+## getPreset
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-registry.ts" sourceLine="32" packageName="@vendure/core" since="4.0.0" />
+
+Returns the preset with the given name, or `undefined`.
+
+```ts title="Signature"
+function getPreset(name: string): Preset | undefined
+```
+Parameters
+
+### name
+
+<MemberInfo kind="parameter" type={`string`} />
+
+## listPresets
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-registry.ts" sourceLine="46" packageName="@vendure/core" since="4.0.0" />
+
+Lists the released base-data presets: `eu`, `uk`, `us`, `au` and `single-country`. `eu` is
+listed only while its VAT rates have a review date, see `EU_VAT_RATES_REVIEWED_AT`.
+
+```ts title="Signature"
+function listPresets(): PresetDescription[]
+```
+## validatePresetOptions
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-registry.ts" sourceLine="63" packageName="@vendure/core" since="4.0.0" />
+
+Checks a preset name and its options without touching a database. Throws a [SeedError](/reference/typescript-api/import-export/presets#seederror)with the code `core.preset-unknown` or `core.preset-invalid-option`, and returns the preset.
+
+```ts title="Signature"
+function validatePresetOptions(name: string, options: Record<string, string>): Preset
+```
+Parameters
+
+### name
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`Record<string, string>`} />
+
+## PresetOptionDefinition
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="22" packageName="@vendure/core" since="4.0.0" />
+
+An option that a [Preset](/reference/typescript-api/import-export/presets#preset) accepts, such as `country`.
+
+```ts title="Signature"
+interface PresetOptionDefinition {
+    description: string;
+    required?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### required
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+
+
+</div>
+## PresetServices
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="35" packageName="@vendure/core" since="4.0.0" />
+
+The services a [Preset](/reference/typescript-api/import-export/presets#preset) creates its data with.
+
+```ts title="Signature"
+interface PresetServices {
+    configService: ConfigService;
+    channelService: ChannelService;
+    zoneService: ZoneService;
+    countryService: CountryService;
+    taxCategoryService: TaxCategoryService;
+    taxRateService: TaxRateService;
+    shippingMethodService: ShippingMethodService;
+    paymentMethodService: PaymentMethodService;
+    stockLocationService: StockLocationService;
+}
+```
+
+<div className="members-wrapper">
+
+### configService
+
+<MemberInfo kind="property" type={`ConfigService`}   />
+
+
+### channelService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/channel-service#channelservice'>ChannelService</a>`}   />
+
+
+### zoneService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/zone-service#zoneservice'>ZoneService</a>`}   />
+
+
+### countryService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/country-service#countryservice'>CountryService</a>`}   />
+
+
+### taxCategoryService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/tax-category-service#taxcategoryservice'>TaxCategoryService</a>`}   />
+
+
+### taxRateService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/tax-rate-service#taxrateservice'>TaxRateService</a>`}   />
+
+
+### shippingMethodService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/shipping-method-service#shippingmethodservice'>ShippingMethodService</a>`}   />
+
+
+### paymentMethodService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/payment-method-service#paymentmethodservice'>PaymentMethodService</a>`}   />
+
+
+### stockLocationService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/services/stock-location-service#stocklocationservice'>StockLocationService</a>`}   />
+
+
+
+
+</div>
+## PresetResult
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="55" packageName="@vendure/core" since="4.0.0" />
+
+What a [Preset](/reference/typescript-api/import-export/presets#preset) created, with a count per entity.
+
+```ts title="Signature"
+interface PresetResult {
+    preset: string;
+    options: Record<string, string>;
+    created: {
+        countries: number;
+        zones: number;
+        taxCategories: number;
+        taxRates: number;
+        shippingMethods: number;
+        paymentMethods: number;
+        stockLocations: number;
+    };
+    notices: string[];
+    channel: {
+        defaultCurrencyCode: CurrencyCode;
+        pricesIncludeTax: boolean;
+        /** The channel's tax country, when the preset sets one. */
+        taxCountryCode?: string;
+        defaultTaxZone: string;
+        defaultShippingZone: string;
+    };
+}
+```
+
+<div className="members-wrapper">
+
+### preset
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### options
+
+<MemberInfo kind="property" type={`Record<string, string>`}   />
+
+
+### created
+
+<MemberInfo kind="property" type={`{         countries: number;         zones: number;         taxCategories: number;         taxRates: number;         shippingMethods: number;         paymentMethods: number;         stockLocations: number;     }`}   />
+
+
+### notices
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+### channel
+
+<MemberInfo kind="property" type={`{         defaultCurrencyCode: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>;         pricesIncludeTax: boolean;         /** The channel's tax country, when the preset sets one. */         taxCountryCode?: string;         defaultTaxZone: string;         defaultShippingZone: string;     }`}   />
+
+
+
+
+</div>
+## Preset
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/preset-types.ts" sourceLine="91" packageName="@vendure/core" since="4.0.0" />
+
+A base-data preset: a typical starting point for a new store. It sets the default Channel's
+currencies, languages and `pricesIncludeTax`, and creates countries, zones, tax categories and
+rates, a shipping method, a test payment method outside production, and a stock location.
+
+A preset runs once, on an empty database, through [applyPreset](/reference/typescript-api/import-export/presets#applypreset).
+
+```ts title="Signature"
+interface Preset {
+    name: string;
+    description: string;
+    options?: Record<string, PresetOptionDefinition>;
+    validate?(options: Record<string, string>): { option: string; reason: string } | undefined;
+    apply(
+        ctx: RequestContext,
+        services: PresetServices,
+        options: Record<string, string>,
+    ): Promise<PresetResult>;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### options
+
+<MemberInfo kind="property" type={`Record<string, <a href='/reference/typescript-api/import-export/presets#presetoptiondefinition'>PresetOptionDefinition</a>>`}   />
+
+
+### validate
+
+<MemberInfo kind="method" type={`(options: Record<string, string>) => { option: string; reason: string } | undefined`}   />
+
+
+### apply
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, services: <a href='/reference/typescript-api/import-export/presets#presetservices'>PresetServices</a>, options: Record<string, string>) => Promise<<a href='/reference/typescript-api/import-export/presets#presetresult'>PresetResult</a>>`}   />
+
+
+
+
+</div>
+## SeedErrorCode
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-errors.ts" sourceLine="23" packageName="@vendure/core" since="4.0.0" />
+
+The codes of a [SeedError](/reference/typescript-api/import-export/presets#seederror).
+
+- `core.preset-unknown`: no preset has the name. Details: `{name, available}`.
+- `core.preset-invalid-option`: an option is missing, unknown or invalid. Details:
+  `{preset, option, reason}`.
+- `core.preset-database-not-empty`: the database already has setup data or a preset sentinel.
+  Details: [PresetDatabaseNotEmptyDetails](/reference/typescript-api/import-export/presets#presetdatabasenotemptydetails).
+- `core.scenario-invalid`: a scenario pack could not be loaded, or its manifest is invalid.
+  Details: `{package, reason}`.
+- `core.scenario-preset-mismatch`: the database was not seeded with the scenario's preset.
+  Details: `{scenario, preset, appliedPreset?}`.
+- `core.scenario-already-seeded`: the database was already seeded with a scenario. Details:
+  `{appliedScenario}`.
+
+```ts title="Signature"
+type SeedErrorCode = | 'core.preset-unknown'
+    | 'core.preset-invalid-option'
+    | 'core.preset-database-not-empty'
+    | 'core.scenario-invalid'
+    | 'core.scenario-preset-mismatch'
+    | 'core.scenario-already-seeded'
+```
+## SeedErrorFix
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-errors.ts" sourceLine="40" packageName="@vendure/core" since="4.0.0" />
+
+One way to fix a [SeedError](/reference/typescript-api/import-export/presets#seederror). It is the `Fix` type of `@vendure/common`. None of the seed
+errors can be fixed by a command, so these fixes carry only a `description`.
+
+```ts title="Signature"
+type SeedErrorFix = Fix
+```
+## PresetDatabaseNotEmptyDetails
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-errors.ts" sourceLine="50" packageName="@vendure/core" since="4.0.0" />
+
+What the database already holds when [applyPreset](/reference/typescript-api/import-export/presets#applypreset) refuses to run.
+
+```ts title="Signature"
+interface PresetDatabaseNotEmptyDetails {
+    countries: number;
+    zones: number;
+    taxRates: number;
+    taxCategories: number;
+    shippingMethods: number;
+    paymentMethods: number;
+    products: number;
+    channels: number;
+    appliedPreset?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### countries
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### zones
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### taxCategories
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### shippingMethods
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### paymentMethods
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### products
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### appliedPreset
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
+## SeedError
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-errors.ts" sourceLine="72" packageName="@vendure/core" since="4.0.0" />
+
+An error thrown by [applyPreset](/reference/typescript-api/import-export/presets#applypreset) or [seedScenario](/reference/typescript-api/import-export/scenarios#seedscenario). It carries a namespaced
+[SeedErrorCode](/reference/typescript-api/import-export/presets#seederrorcode), the details the message was built from, and fixes.
+
+```ts title="Signature"
+class SeedError<Details = any> extends Error {
+    readonly vendureCode: SeedErrorCode;
+    readonly details: Details;
+    readonly fix: SeedErrorFix[];
+    constructor(options: { code: SeedErrorCode; message: string; details: Details; fix?: SeedErrorFix[] })
+}
+```
+* Extends: Error
+
+
+
+<div className="members-wrapper">
+
+### vendureCode
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/import-export/presets#seederrorcode'>SeedErrorCode</a>`}   />
+
+
+### details
+
+<MemberInfo kind="property" type={`Details`}   />
+
+
+### fix
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/import-export/presets#seederrorfix'>SeedErrorFix</a>[]`}   />
+
+
+
+
+</div>
+## isSeedError
+
+<GenerationInfo sourceFile="packages/core/src/data-import/presets/seed-errors.ts" sourceLine="95" packageName="@vendure/core" since="4.0.0" />
+
+Whether `error` is a [SeedError](/reference/typescript-api/import-export/presets#seederror). It checks the shape, not the class, because the CLI can
+load a different copy of this package than the project.
+
+```ts title="Signature"
+function isSeedError(error: unknown): error is SeedError
+```
+Parameters
+
+### error
+
+<MemberInfo kind="parameter" type={`unknown`} />
+

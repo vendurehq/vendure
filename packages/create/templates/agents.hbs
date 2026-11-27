@@ -1,42 +1,31 @@
-# {{ name }} Project Instructions
+# {{ name }}
 
-This project was generated with `@vendure/create`.
-
-{{#if isMonorepo}}
-## Workspace Layout
-
-- Vendure backend: `apps/server`
-- {{ storefrontName }} storefront: `apps/storefront`
-- Start both apps: `npm run dev`
-- Start only the server: `npm run dev:server`
-- Start only the storefront: `npm run dev:storefront`
-- Backend custom code belongs in `apps/server/src/plugins`
-- Backend runtime configuration is in `apps/server/src/vendure-config.ts`
-- Backend static assets and email templates live in `apps/server/static`
-{{else}}
-## Project Layout
-
-- Custom backend code belongs in `src/plugins`
-- Runtime configuration is in `src/vendure-config.ts`
-- Static assets and email templates live in `static`
-{{/if}}
-
-## Vendure Development
-
-- Prefer implementing custom functionality as a Vendure plugin.
-- Use `npx vendure add` to scaffold plugins, entities, services, API extensions, and job queues.
-- Read environment variables in `vendure-config.ts` and pass values into plugins through `Plugin.init()` options.
-- Create job queues in `onModuleInit()` or `onApplicationBootstrap()`, then reuse the queue when adding jobs.
-- Pass `RequestContext` to Vendure services and `TransactionalConnection` methods when it is available.
-- Do not commit `.env` values or generated runtime data.
-- Do not use `dbConnectionOptions.synchronize: true` for production data.
+A Vendure store{{#if storefront}} with a {{ storefront.frameworkName }} storefront in `apps/storefront`{{/if}}. It is a Vendure Cloud app: `{{ serverPath }}src/vendure-config.ts` calls `defineCloudConfig()`, and there is no entry point.
 
 ## Commands
 
-- Start development: `npm run dev`
-- Build: `npm run build`
+The package manager is {{ packageManager }}.{{#if serverPath}} Run the `vendure` commands in `{{ serverDir }}`.{{/if}}
 
-## Quality Checks
+- `{{ dev }}`: start the local environment. It needs Docker or Podman, and starts PostgreSQL, Redis, the server, the worker and the Dashboard.
+- `{{ build }}`: compile the project.
+- `{{ typecheck }}`: check the types.
+- `{{ exec }} vendure guide`: the agent guide for the Vendure CLI. Read it before you use the CLI.
+- `{{ exec }} vendure commands --json`: the commands that accept `--json`.
 
-- Run `npm run build` after changing backend code.
-- Run targeted tests for the package or feature you changed.
+Known issue in the 4.0 previews, up to `@vendure/cli` 4.0.0-preview.3: in this project, `vendure doctor`'s `config` check and `vendure seed` with a preset fail with "Could not find the VendureConfig declaration in your project", and doctor then skips its `schema` and `database` checks. A later preview fixes it, so check the installed `@vendure/cli` version first. Until then, run `{{ exec }} vendure doctor --check project dependencies`, read config and database errors from `lastError` in `{{ exec }} vendure devserver status --json`, and set up the store with the `admin_*` tools of the `vendure` MCP server, as the `vendure-store-setup` skill describes.
+
+## Rules
+
+- Change the database schema only through migrations. After you change an entity or a custom field, run `{{ exec }} vendure migrate generate <name>`, and commit the file it writes in `{{ serverPath }}src/migrations/`.
+- Keep plugins in `{{ serverPath }}src/plugins/`, and add them to the `store` extension in `{{ serverPath }}src/vendure-config.ts`.
+- `{{ serverPath }}.vendure/create.json` records what the project was created with. Do not edit it.
+- Do not set the options the Cloud runtime owns, such as `dbConnectionOptions`, the API port or the superadmin credentials. `defineCloudConfig` refuses them.
+
+## Agent tools
+
+- The `vendure` MCP server runs the project's own CLI (`vendure mcp`). The `vendure-docs` MCP server searches the Vendure documentation.
+- Skills in `.agents/skills/`:{{#each skills}} `{{ this }}`{{#unless @last}},{{/unless}}{{/each}}. Each skill's `SKILL.md` says when to use it.{{#if claudeSkills}} Claude Code reads its copy in `.claude/skills/`, so change both.{{/if}}
+
+## Deploying
+
+`{{ exec }} vendure cloud deploy` deploys to Vendure Cloud. Production needs `MCP_TOKEN_SECRET` and `MCP_ISSUER`. To run Vendure on your own infrastructure, see {{ selfHostingGuideUrl }}.

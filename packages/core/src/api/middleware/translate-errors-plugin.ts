@@ -5,6 +5,9 @@ import { I18nService } from '../../i18n/i18n.service';
 /**
  * This plugin intercepts outgoing responses and translates any error messages into the
  * current request language.
+ *
+ * Only the message of each formatted error is replaced, so the fields that the `formatError`
+ * function adds to the extensions are kept.
  */
 export class TranslateErrorsPlugin implements ApolloServerPlugin {
     constructor(private i18nService: I18nService) {}
@@ -14,9 +17,16 @@ export class TranslateErrorsPlugin implements ApolloServerPlugin {
             willSendResponse: async requestContext => {
                 const { errors, contextValue } = requestContext;
                 const { body } = requestContext.response;
-                if (errors && body.kind === 'single') {
-                    body.singleResult.errors = errors.map(err => {
-                        return this.i18nService.translateError(contextValue.req, err) as any;
+                if (errors && body.kind === 'single' && body.singleResult.errors) {
+                    // Apollo Server formats each error in `errors` in order, so `errors[i]` is the
+                    // error which was formatted as `body.singleResult.errors[i]`.
+                    body.singleResult.errors = body.singleResult.errors.map((formattedError, i) => {
+                        const error = errors[i];
+                        if (!error) {
+                            return formattedError;
+                        }
+                        const { message } = this.i18nService.translateError(contextValue.req, error);
+                        return { ...formattedError, message };
                     });
                 }
             },

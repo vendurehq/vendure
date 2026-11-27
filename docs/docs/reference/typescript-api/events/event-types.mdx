@@ -271,6 +271,32 @@ class ChannelStockSettingsEvent extends VendureEvent {
 
 
 </div>
+## ChannelTaxCountryEvent
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/channel-tax-country-event.ts" sourceLine="19" packageName="@vendure/core" since="4.0.0" />
+
+This event is fired when the `taxCountryCode` of a [Channel](/reference/typescript-api/entities/channel#channel) changes. The tax country
+chooses the rate that the Channel's tax-inclusive prices include, and the tax rate of prices with
+no shipping country, so the prices of the Channel's variants can change. Search plugins subscribe
+to it to reindex the Channel.
+
+Unlike [ChannelEvent](/reference/typescript-api/events/event-types#channelevent), it is only fired when the value actually changes. `channel` holds
+the new value, and `previousTaxCountryCode` the old one.
+
+```ts title="Signature"
+class ChannelTaxCountryEvent extends VendureEvent {
+    constructor(ctx: RequestContext, channel: Channel, previousTaxCountryCode: string | null)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## CollectionEvent
 
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/collection-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
@@ -1339,16 +1365,44 @@ class TaxCategoryEvent extends VendureEntityEvent<TaxCategory, TaxCategoryInputT
 
 
 </div>
+## TaxRateTargetIds
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-event.ts" sourceLine="18" packageName="@vendure/core" since="4.0.0" />
+
+The target of a [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate) before an update: the Zone or the country Region it applied to.
+
+```ts title="Signature"
+interface TaxRateTargetIds {
+    zoneId: ID | null;
+    regionId: ID | null;
+}
+```
+
+<div className="members-wrapper">
+
+### zoneId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### regionId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+
+
+</div>
 ## TaxRateEvent
 
-<GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-event.ts" sourceLine="18" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-event.ts" sourceLine="31" packageName="@vendure/core" />
 
 This event is fired whenever a [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate) is added, updated
-or deleted.
+or deleted. On an update, `previousTarget` holds the Zone or country the rate targeted before.
 
 ```ts title="Signature"
 class TaxRateEvent extends VendureEntityEvent<TaxRate, TaxRateInputTypes> {
-    constructor(ctx: RequestContext, entity: TaxRate, type: 'created' | 'updated' | 'deleted', input?: TaxRateInputTypes)
+    constructor(ctx: RequestContext, entity: TaxRate, type: 'created' | 'updated' | 'deleted', input?: TaxRateInputTypes, previousTarget?: TaxRateTargetIds)
 }
 ```
 * Extends: [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event#vendureentityevent)`<`[`TaxRate`](/reference/typescript-api/entities/tax-rate#taxrate)`, TaxRateInputTypes>`

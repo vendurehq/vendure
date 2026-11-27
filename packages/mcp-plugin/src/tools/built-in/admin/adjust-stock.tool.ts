@@ -55,6 +55,26 @@ export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
         private readonly serializer: McpToolSerializerService,
     ) {}
 
+    // Names the variant, the location and the delta, not the current level: the delta is what is
+    // approved, and the level a concurrent sale changes would void the consent for no reason.
+    async describe(ctx: RequestContext, input: AdjustStockInput) {
+        const variant = await this.productVariantService.findOne(ctx, input.variantId);
+        if (!variant) {
+            throw new UserInputError(`Product variant ${input.variantId} is not available in the active channel.`);
+        }
+        const location = await this.stockLocationService.findOne(ctx, input.locationId);
+        if (!location) {
+            throw new UserInputError(
+                `Stock location ${input.locationId} is not available in the active channel.`,
+            );
+        }
+        const change = input.delta >= 0 ? `Add ${input.delta} to` : `Remove ${-input.delta} from`;
+        return (
+            `${change} the stock on hand of variant ${variant.name} (SKU ${variant.sku}, id ` +
+            `${String(variant.id)}) at stock location ${location.name} (id ${String(location.id)}).`
+        );
+    }
+
     async execute(ctx: RequestContext, input: AdjustStockInput) {
         // The write sets an absolute stockOnHand, so the read must hold the row lock until the tool's
         // transaction commits. Otherwise a concurrent adjustment would be overwritten. See #5652

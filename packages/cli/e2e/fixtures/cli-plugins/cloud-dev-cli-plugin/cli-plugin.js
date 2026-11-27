@@ -5,10 +5,9 @@ const { defineCliPlugin, readCommandOptions } = require('@vendure/cli');
 
 module.exports = defineCliPlugin({
     id: '@vendure-e2e/cloud-dev-cli-plugin',
-    commands: [],
     extendCommands: [
         {
-            command: 'dev',
+            command: 'start',
             options: [
                 {
                     long: '--cloud-env <name>',

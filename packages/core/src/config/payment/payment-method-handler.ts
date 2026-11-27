@@ -449,6 +449,14 @@ export class PaymentMethodHandler<T extends ConfigArgs = ConfigArgs> extends Con
     }
 
     /**
+     * @internal
+     * Whether an `onStateTransitionStart` hook is configured.
+     */
+    get hasOnStateTransitionStart(): boolean {
+        return typeof this.onTransitionStartFn === 'function';
+    }
+
+    /**
      * @description
      * This function is called before the state of a Payment is transitioned. If the PaymentMethodHandler
      * was instantiated with a `onStateTransitionStart` function, that function will be invoked and its

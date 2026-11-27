@@ -2,6 +2,7 @@ import { UpdateScheduledTaskInput } from '@vendure/common/lib/generated-types';
 import { Cron } from 'croner';
 import ms, { type StringValue } from 'ms';
 import { inspect } from 'node:util';
+import { EntityManager } from 'typeorm';
 
 import { Injector } from '../../common';
 import { assertFound } from '../../common/utils';
@@ -281,7 +282,7 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
         if (supportsPessimisticLocking) {
             // Use a transaction with pessimistic locking to ensure only one worker
             // can acquire the lock.
-            return this.connection.rawConnection.transaction(async manager => {
+            const tryAcquire = async (manager: EntityManager) => {
                 // First, try to select the task row with a FOR UPDATE lock.
                 // This will block other transactions trying to select the same row
                 // until this transaction commits or rolls back.
@@ -310,7 +311,8 @@ export class DefaultSchedulerStrategy implements SchedulerStrategy {
                     .update({ id: taskRecord.id }, { lockedAt: new Date() });
 
                 return true;
-            });
+            };
+            return this.connection.withRawTransaction(tryAcquire);
         } else {
             // For databases without pessimistic locking support (SQLite, SQL.js),
             // use the atomic UPDATE approach. This works for single-connection scenarios

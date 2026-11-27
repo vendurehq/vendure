@@ -15,6 +15,7 @@ import { ProductVariantPrice } from '../../../entity/product-variant/product-var
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
 import { TaxRateService } from '../../services/tax-rate.service';
 import { ZoneService } from '../../services/zone.service';
+import { resolveTaxCountryCode } from '../utils/resolve-tax-country-code';
 
 /**
  * @description
@@ -92,16 +93,29 @@ export class ProductPriceApplicator {
         );
         const activeTaxZone = await this.requestCache.get(
             ctx,
-            CacheKey.ActiveTaxZone_PPA(ctx.channelId),
+            CacheKey.ActiveTaxZone_PPA(ctx.channelId, order?.id),
             () => taxZoneStrategy.determineTaxZone(ctx, zones, ctx.channel, order),
         );
         if (!activeTaxZone) {
             throw new InternalServerError('error.no-active-tax-zone');
         }
+        // Not cached on the request, see resolveTaxCountryCode().
+        const countryCode = await resolveTaxCountryCode(
+            taxZoneStrategy,
+            ctx,
+            ctx.channel,
+            activeTaxZone,
+            order,
+        );
         const applicableTaxRate = await this.requestCache.get(
             ctx,
-            `applicableTaxRate-${activeTaxZone.id}-${variant.taxCategory.id}`,
-            () => this.taxRateService.getApplicableTaxRate(ctx, activeTaxZone, variant.taxCategory),
+            `applicableTaxRate-${activeTaxZone.id}-${countryCode ?? ''}-${variant.taxCategory.id}`,
+            () =>
+                this.taxRateService.getApplicableTaxRate(
+                    ctx,
+                    { countryCode, zone: activeTaxZone },
+                    variant.taxCategory,
+                ),
         );
 
         const { price, priceIncludesTax } = await productVariantPriceCalculationStrategy.calculate({
@@ -111,6 +125,7 @@ export class ProductPriceApplicator {
             productVariant: variant,
             activeTaxZone,
             ctx,
+            taxRate: applicableTaxRate,
         });
 
         variant.listPrice = price;

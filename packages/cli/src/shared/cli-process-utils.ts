@@ -40,24 +40,45 @@ export function pipePrefixedOutput(
     output: NodeJS.WriteStream,
     processDefinition: PrefixedProcessDefinition,
 ) {
+    const prefix = getProcessPrefix(processDefinition);
+    forEachLine(stream, line => writePrefixedLines(output, `${prefix} `, line));
+}
+
+/**
+ * Calls `onLine` for each line of a stream, without the line ending, and for the last line when
+ * the stream ends without one. The stream is read as UTF-8, so a character split across two chunks
+ * stays whole.
+ */
+export function forEachLine(stream: NodeJS.ReadableStream | null, onLine: (line: string) => void) {
     if (!stream) {
         return;
     }
+    stream.setEncoding('utf8');
     let buffered = '';
-    const prefix = getProcessPrefix(processDefinition);
-    stream.on('data', data => {
-        buffered += data.toString();
+    stream.on('data', (data: string) => {
+        buffered += data;
         const lines = buffered.split(/\r?\n/);
         buffered = lines.pop() ?? '';
         for (const line of lines) {
-            output.write(line.length ? `${prefix} ${line}\n` : '\n');
+            onLine(line);
         }
     });
     stream.on('end', () => {
         if (buffered.length) {
-            output.write(`${prefix} ${buffered}\n`);
+            onLine(buffered);
+            buffered = '';
         }
     });
+}
+
+/**
+ * Writes each line of `text` to `output` with `prefix` in front of it. An empty line is written
+ * without the prefix.
+ */
+export function writePrefixedLines(output: { write(text: string): unknown }, prefix: string, text: string) {
+    for (const line of text.split('\n')) {
+        output.write(line.length ? `${prefix}${line}\n` : '\n');
+    }
 }
 
 export function waitForChildProcesses(

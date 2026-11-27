@@ -170,7 +170,7 @@ describe('Project Link Manifest', () => {
         vendureProject(path.join(workspace, 'server'));
 
         expect(() => resolveProjectRoot(workspace)).toThrow(
-            'Found a Vendure project in `server`. Run the command there, or pass `--project server`.',
+            'Found a Vendure project in `server`. Run the command there, or pass `server` as dir.',
         );
     });
 
@@ -179,7 +179,7 @@ describe('Project Link Manifest', () => {
         fs.writeJsonSync(path.join(workspace, 'package.json'), { private: true, workspaces: ['backend/*'] });
         vendureProject(path.join(workspace, 'backend', 'server'));
 
-        expect(() => resolveProjectRoot(workspace)).toThrow('`--project backend/server`');
+        expect(() => resolveProjectRoot(workspace)).toThrow('`backend/server` as dir');
     });
 
     it('lists several project directories from a workspace root', () => {
@@ -199,7 +199,7 @@ describe('Project Link Manifest', () => {
         fs.ensureDirSync(path.join(workspace, 'docs'));
 
         expect(() => resolveProjectRoot(workspace)).toThrow(
-            /^Could not find a Vendure project\. Run this command from a project that depends on @vendure\/core, or pass --project <path>\.$/,
+            /^Could not find a Vendure project\. Run this command from a project that depends on @vendure\/core, or pass its path as dir\.$/,
         );
     });
 
