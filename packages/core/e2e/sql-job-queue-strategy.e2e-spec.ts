@@ -220,7 +220,13 @@ describe('SqlJobQueueStrategy next()', () => {
             try {
                 const StrategyClass = strategy.constructor as new () => PollingJobQueueStrategy;
                 const singleConnectionStrategy = new StrategyClass();
-                singleConnectionStrategy.init({ get: () => ({ rawConnection: singleConnection }) } as any);
+                singleConnectionStrategy.init({
+                    get: () => ({
+                        rawConnection: singleConnection,
+                        withRawTransaction: (work: any) =>
+                            singleConnection.transaction('READ COMMITTED', work),
+                    }),
+                } as any);
                 const handlerReads = async () => {
                     const rows: Array<{ Value: string }> = await singleConnection.query(
                         "SHOW SESSION STATUS LIKE 'Handler_read%'",

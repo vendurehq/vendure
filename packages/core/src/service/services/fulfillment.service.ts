@@ -64,6 +64,8 @@ export class FulfillmentService {
         }
         let fulfillmentPartial;
         try {
+            // A carrier may register a shipment here, which a retry would register again.
+            this.connection.preventTransactionRetry(ctx);
             fulfillmentPartial = await fulfillmentHandler.createFulfillment(
                 ctx,
                 orders,

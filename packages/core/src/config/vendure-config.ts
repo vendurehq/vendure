@@ -5,6 +5,7 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { ValidationContext } from 'graphql';
 import { DataSourceOptions } from 'typeorm';
 
+import type { TransactionIsolationLevel } from '../api/decorators/transaction.decorator';
 import { Middleware } from '../common';
 import { PermissionDefinition } from '../common/permission-definition';
 import { JobBufferStorageStrategy } from '../job-queue/job-buffer/job-buffer-storage-strategy';
@@ -1376,6 +1377,35 @@ export interface EntityOptions {
      * @default 'timestamptz'
      */
     timestampColumnType?: 'timestamptz' | 'timestamp';
+    /**
+     * @description
+     * The isolation level of the transactions Vendure starts, through the {@link Transaction}
+     * decorator or {@link TransactionalConnection}`.withTransaction()`, when no level is given
+     * explicitly.
+     *
+     * When not set, transactions on MySQL and MariaDB use `READ COMMITTED`, and on every other
+     * database the database's own default applies (which is `READ COMMITTED` on Postgres). With
+     * TypeORM v1, an `isolationLevel` set in `dbConnectionOptions` is used instead of that default.
+     * TypeORM 0.3 has no such option.
+     *
+     * Concurrent writes to the same Order are serialized with a row lock. Under InnoDB's own
+     * default of `REPEATABLE READ`, a transaction keeps reading the snapshot taken at its first
+     * read, so a request which waited for that lock would still read the data from before the
+     * request it waited for, and overwrite its changes. On MariaDB 11.6.2 and later such reads
+     * fail with `ER_CHECKREAD` instead. Setting `'REPEATABLE READ'` here on MySQL or MariaDB
+     * brings those problems back.
+     *
+     * :::note
+     * MySQL and MariaDB only allow `READ COMMITTED` with row-based or mixed binary logging. If the
+     * server uses `binlog_format=STATEMENT`, change it to `ROW` or `MIXED`.
+     * :::
+     *
+     * SQLite only supports `SERIALIZABLE` and `READ UNCOMMITTED`.
+     *
+     * @since 4.0.0
+     * @default 'READ COMMITTED' on MySQL and MariaDB, the database default otherwise
+     */
+    transactionIsolationLevel?: TransactionIsolationLevel;
 }
 
 /**
@@ -1574,7 +1604,7 @@ export interface RuntimeVendureConfig extends Required<VendureConfig> {
     authOptions: Required<AuthOptions>;
     catalogOptions: Required<CatalogOptions>;
     customFields: Required<CustomFields>;
-    entityOptions: Required<EntityOptions>;
+    entityOptions: Required<Omit<EntityOptions, 'transactionIsolationLevel'>> & EntityOptions;
     importExportOptions: Required<ImportExportOptions>;
     jobQueueOptions: Required<JobQueueOptions>;
     schedulerOptions: Required<Omit<SchedulerOptions, 'timezone'>> & SchedulerOptions;

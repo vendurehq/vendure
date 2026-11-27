@@ -19,6 +19,7 @@ This section contains guides for migrating from Vendure v3 to v4. Follow the ste
 | `ProductVariant.productVariantPrices` is no longer eager. Variants are priced with the prices of the active Channel only. | Plugins which read `productVariantPrices`, custom price selection and calculation strategies | [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#productvariant-prices-are-loaded-per-channel) |
 | A TaxRate targets a country or a Zone, and a country rate wins. `TaxRate.zone` is nullable and `CreateTaxRateInput.zoneId` is optional. | Plugins and Admin API clients which read `TaxRate.zone` or create tax rates | [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#tax-rates) |
 | The browser login API of `@vendure/cli` (`loginWithBrowser`, `refreshSession`) is removed. The CLI signs in with a device login. | CLI plugins that sign in to Vendure Console | [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#cli-login-api) |
+| Concurrent writes to the same Order are serialized with a row lock. MySQL and MariaDB transactions run at `READ COMMITTED`. Deadlocked transactions are retried, unless they have called a payment provider. | MySQL and MariaDB servers with `binlog_format=STATEMENT`, plugins which write Orders or call external services in a transaction | [Order concurrency](/developer-guide/migrating-from-v3/order-concurrency) |
 | `vendure dev` takes the project directory as `--dir`, ends with exit code 0 when it is stopped, and can no longer be extended with `extendCommands`. | Scripts and CI jobs that run `vendure dev --project`, CLI plugins that extend `dev` | [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#vendure-dev) |
 | `vendure console` takes the project directory as `--dir` and the Console Project as `--project`, needs a named consent to replace or remove a link, and writes the standard envelope with `--json`. | Scripts and CI jobs that run `vendure console`, CLI plugins that extend `console` | [Breaking API changes](/developer-guide/migrating-from-v3/breaking-api-changes#vendure-console) |
 | APIs deprecated during v3 or earlier are removed, including the built-in health check strategies and the API playground options. | VendureConfig, plugins | [Removed deprecated APIs](/developer-guide/migrating-from-v3/breaking-api-changes#removed-deprecated-apis) |
@@ -35,7 +36,9 @@ Upgrade to the latest v3 release first, following [Updating Vendure](/developer-
 
 After you go live on v4, restoring this backup is the only way back to v3.
 
-**Done when:** you have a backup you have tested restoring.
+On MySQL or MariaDB, also check the binary log format of the server, as described in [Order concurrency](/developer-guide/migrating-from-v3/order-concurrency#1-binary-log-format-mysql-and-mariadb). With `binlog_format=STATEMENT`, every write fails after the upgrade.
+
+**Done when:** you have a backup you have tested restoring, and on MySQL or MariaDB the binary log format is `ROW` or `MIXED`, or binary logging is off.
 
 ### 3. Update your Vendure dependencies
 

@@ -10,6 +10,7 @@ import {
     FindOptionsRelations,
     ObjectLiteral,
     ObjectType,
+    QueryRunner,
     ReplicationMode,
     Repository,
     SelectQueryBuilder,
@@ -17,7 +18,11 @@ import {
 
 import { RequestContext } from '../api/common/request-context';
 import { TransactionIsolationLevel } from '../api/decorators/transaction.decorator';
-import { TRANSACTION_MANAGER_KEY } from '../common/constants';
+import {
+    TRANSACTION_ISOLATION_LEVEL_KEY,
+    TRANSACTION_MANAGER_KEY,
+    TRANSACTION_NO_RETRY_KEY,
+} from '../common/constants';
 import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
 import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
@@ -34,11 +39,45 @@ import {
 } from '../entity/channel-assignment/channel-custom-fields';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
+import { getDatabaseType } from './database-type';
 import { findOptionsArrayToObject } from './find-options-array-to-object';
 import { findOptionsObjectToArray } from './find-options-object-to-array';
+import { isPostgresDatabase } from './timezone-utils';
 import { toTypeOrmFindOptions } from './to-typeorm-find-options';
 import { TransactionWrapper } from './transaction-wrapper';
 import { GetEntityOrThrowOptions, VendureFindManyOptions, VendureFindOneOptions } from './types';
+
+/**
+ * The databases on which `lockRow()` takes a lock. SQLite and sql.js support no row locks, and run
+ * every write on a single connection.
+ */
+const ROW_LOCKING_DB_TYPES: string[] = ['postgres', 'aurora-postgres', 'mysql', 'mariadb', 'aurora-mysql'];
+
+/**
+ * @description
+ * Options for {@link TransactionalConnection}`.lockRow()`.
+ *
+ * @docsCategory data-access
+ * @since 4.0.0
+ */
+export interface LockRowOptions {
+    /**
+     * @description
+     * Only take the lock where the reads which follow it see what the previous lock holder
+     * committed, which needs `READ COMMITTED`. Set this when the lock serializes a
+     * read-modify-write: there, a writer which waited for the lock but still read its first
+     * snapshot would overwrite the changes of the writer before it every time, which is worse than
+     * not serializing at all.
+     *
+     * The lock is skipped on Aurora MySQL, whose TypeORM driver never applies an isolation level so
+     * that it always runs at `REPEATABLE READ`, and in a transaction which runs at
+     * `REPEATABLE READ`, whether through `entityOptions.transactionIsolationLevel` or the
+     * `@Transaction()` decorator.
+     *
+     * @default false
+     */
+    requireReadCommitted?: boolean;
+}
 
 /**
  * Repository methods intercepted by the access control Proxy.
@@ -239,13 +278,55 @@ export class TransactionalConnection {
 
     /**
      * @description
+     * The isolation level Vendure starts transactions at when none is asked for: the configured
+     * `entityOptions.transactionIsolationLevel`, then (with TypeORM v1) an `isolationLevel` set in
+     * `dbConnectionOptions`, otherwise `READ COMMITTED` on MySQL and MariaDB, otherwise `undefined`,
+     * meaning the database default. To run a TypeORM transaction of your own at this level, use
+     * {@link TransactionalConnection}`.withRawTransaction()`.
+     *
+     * @since 4.0.0
+     */
+    getDefaultIsolationLevel(): TransactionIsolationLevel | undefined {
+        return this.transactionWrapper.resolveIsolationLevel(undefined, this.rawConnection);
+    }
+
+    /**
+     * @description
+     * Runs `work` in a TypeORM transaction of its own, on a connection of its own, at the isolation
+     * level of {@link TransactionalConnection}`.getDefaultIsolationLevel()`. Unlike
+     * `withTransaction()`, it does not join the transaction of a RequestContext and is never
+     * retried, so it suits background work such as job queue and scheduler bookkeeping.
+     *
+     * @example
+     * ```ts
+     * await this.connection.withRawTransaction(async manager => {
+     *     const record = await manager.getRepository(MyRecord).findOne({ where: { id }, lock: { mode: 'pessimistic_write' } });
+     *     // ...
+     * });
+     * ```
+     *
+     * @since 4.0.0
+     */
+    withRawTransaction<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
+        const isolationLevel = this.getDefaultIsolationLevel();
+        return isolationLevel
+            ? this.rawConnection.transaction(isolationLevel, work)
+            : this.rawConnection.transaction(work);
+    }
+
+    /**
+     * @description
      * Manually start a transaction if one is not already in progress. This method should be used in
-     * conjunction with the `'manual'` mode of the {@link Transaction} decorator.
+     * conjunction with the `'manual'` mode of the {@link Transaction} decorator. Without an
+     * `isolationLevel`, it starts at {@link TransactionalConnection}`.getDefaultIsolationLevel()`.
      */
     async startTransaction(ctx: RequestContext, isolationLevel?: TransactionIsolationLevel) {
         const transactionManager = this.getTransactionManager(ctx);
-        if (transactionManager?.queryRunner?.isTransactionActive === false) {
-            await transactionManager.queryRunner.startTransaction(isolationLevel);
+        const queryRunner = transactionManager?.queryRunner;
+        if (queryRunner?.isTransactionActive === false) {
+            const level = this.transactionWrapper.resolveIsolationLevel(isolationLevel, this.rawConnection);
+            await queryRunner.startTransaction(level);
+            queryRunner.data[TRANSACTION_ISOLATION_LEVEL_KEY] = level;
         }
     }
 
@@ -273,6 +354,125 @@ export class TransactionalConnection {
         const transactionManager = this.getTransactionManager(ctx);
         if (transactionManager?.queryRunner?.isTransactionActive) {
             await transactionManager.queryRunner.rollbackTransaction();
+        }
+    }
+
+    /**
+     * @description
+     * Takes a write lock on a single row, so that concurrent requests which want to modify the
+     * same row are serialized rather than overwriting each other. The lock is held until the
+     * surrounding transaction commits or rolls back.
+     *
+     * The lock is a standalone `SELECT ... FOR UPDATE` by primary key (`FOR NO KEY UPDATE` on
+     * Postgres, which does not block inserts of rows referencing this one). It deliberately does not
+     * load relations: locking a query which left-joins is rejected by Postgres, and making the
+     * join inner to satisfy it would silently change which rows the query returns.
+     *
+     * Two conditions have to hold, and the call is a no-op otherwise:
+     *
+     * * The database must support row locking. SQLite and sql.js do not, but they are also
+     *   single-connection, so the race a lock would prevent cannot occur on them.
+     * * The context must already be inside a transaction. A lock taken in autocommit is released
+     *   by the next statement and protects nothing, and this is what keeps read-only requests,
+     *   which are not wrapped by the {@link Transaction} decorator, from taking locks at all.
+     *
+     * When several rows are locked in one request, always lock them in the same order across the
+     * whole codebase, or two requests can deadlock by taking the same pair in opposite orders.
+     * The lock order Vendure uses is:
+     *
+     * 1. Session
+     * 2. User
+     * 3. Order, several of them in ascending id order
+     * 4. the rows an order operation goes on to lock: the Promotion of a coupon code, then StockLevels
+     *    in ascending ProductVariant id order
+     *
+     * Reads which follow the lock only see what the previous lock holder committed under
+     * `READ COMMITTED`. Under `REPEATABLE READ` they keep reading the transaction's first
+     * snapshot. See `entityOptions.transactionIsolationLevel` and {@link LockRowOptions}.
+     *
+     * @since 4.0.0
+     */
+    async lockRow<T extends VendureEntity>(
+        ctx: RequestContext,
+        entityType: ObjectType<T>,
+        id: ID,
+        options?: LockRowOptions,
+    ): Promise<void> {
+        if (!ROW_LOCKING_DB_TYPES.includes(this.rawConnection.options.type)) {
+            return;
+        }
+        const transactionManager = this.getTransactionManager(ctx);
+        const queryRunner = transactionManager?.queryRunner;
+        // A manager without an active transaction is a `@Transaction('manual')` context whose
+        // transaction has not been started yet, or has already ended. TypeORM refuses a lock there.
+        if (!transactionManager || !queryRunner?.isTransactionActive) {
+            return;
+        }
+        if (options?.requireReadCommitted && !this.readsSeeCommitsAfterLock(queryRunner)) {
+            return;
+        }
+        // The manager's own repository rather than `getRepository(ctx)`: an
+        // EntityAccessControlStrategy could otherwise add joins, which would lock their rows too
+        // (or be rejected by Postgres), or filters, which could leave the row unlocked.
+        await transactionManager
+            .getRepository(entityType)
+            .createQueryBuilder('entity')
+            .select('entity.id')
+            // On Postgres, FOR NO KEY UPDATE: it serializes writers like FOR UPDATE, but does not
+            // conflict with the FOR KEY SHARE lock an insert of a row referencing this one takes,
+            // which a plain UPDATE of the row would not block either.
+            .setLock(
+                isPostgresDatabase(getDatabaseType(this.rawConnection))
+                    ? 'for_no_key_update'
+                    : 'pessimistic_write',
+            )
+            .where('entity.id = :id', { id })
+            .getOne();
+    }
+
+    /**
+     * Whether a read made after a row lock sees what the previous holder of the lock committed. See
+     * {@link LockRowOptions}.
+     */
+    private readsSeeCommitsAfterLock(queryRunner: QueryRunner): boolean {
+        const dbType = getDatabaseType(this.rawConnection);
+        if (dbType === 'aurora-mysql') {
+            return false;
+        }
+        // The level the transaction was started at, which TransactionWrapper and startTransaction()
+        // record. It can differ from the default, e.g. with `@Transaction('auto', 'REPEATABLE READ')`.
+        const level: TransactionIsolationLevel | undefined =
+            TRANSACTION_ISOLATION_LEVEL_KEY in queryRunner.data
+                ? queryRunner.data[TRANSACTION_ISOLATION_LEVEL_KEY]
+                : this.getDefaultIsolationLevel();
+        if (level) {
+            return level !== 'REPEATABLE READ';
+        }
+        // The database default: REPEATABLE READ on InnoDB, READ COMMITTED elsewhere.
+        return dbType !== 'mysql' && dbType !== 'mariadb';
+    }
+
+    /**
+     * @description
+     * Marks the current attempt of the transaction as not safe to retry.
+     *
+     * When the database rejects a transaction with a deadlock or a serialization failure,
+     * Vendure rolls it back and runs the whole unit of work again. That is safe for database
+     * writes, which the rollback discards, but not for work outside the database. Call this
+     * before such work, for example a call to a payment provider, and a failure after it is
+     * thrown instead of being retried. Vendure does this before calling the methods of a
+     * {@link PaymentMethodHandler}, and a {@link FulfillmentHandler}'s `createFulfillment()` and
+     * `onFulfillmentTransition()`. Other code, such as an {@link AuthenticationStrategy}'s
+     * `authenticate()`, runs again on a retry unless it calls this.
+     *
+     * A no-op outside a transaction.
+     *
+     * @since 4.0.0
+     */
+    preventTransactionRetry(ctx: RequestContext): void {
+        const queryRunner = this.getTransactionManager(ctx)?.queryRunner;
+        if (queryRunner) {
+            queryRunner.data[TRANSACTION_NO_RETRY_KEY] = true;
         }
     }
 

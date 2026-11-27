@@ -43,7 +43,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { DEFAULT_CHANNEL_CODE, DEFAULT_REFUND_DESTINATION_CODE } from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { getGraphQlInputName, summate } from '@vendure/common/lib/shared-utils';
-import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
+import { EntityManager, In, IsNull } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -97,7 +97,8 @@ import { RelationCustomFieldConfig } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
-import { TransactionalConnection } from '../../connection/transactional-connection';
+import { isRetriableTransactionError } from '../../connection/is-retriable-transaction-error';
+import { LockRowOptions, TransactionalConnection } from '../../connection/transactional-connection';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Customer } from '../../entity/customer/customer.entity';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
@@ -153,6 +154,7 @@ import {
 } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
 import { REFUND_ORDER_RELATIONS } from '../helpers/utils/refund-order-relations';
+import { compareIdsForLockOrder } from '../helpers/utils/stock-lock-order';
 
 import { ChannelService } from './channel.service';
 import { CountryService } from './country.service';
@@ -188,6 +190,13 @@ class RollbackWithResult extends Error {
         super(result.message);
     }
 }
+
+/**
+ * The Order lock which serializes the read-modify-write of an Order. See LockRowOptions: where the
+ * reads after the lock would not see the previous writer's changes, the lock is skipped rather than
+ * making every concurrent write overwrite the one before it.
+ */
+const READ_COMMITTED_LOCK: LockRowOptions = { requireReadCommitted: true };
 
 /**
  * @description
@@ -1433,6 +1442,7 @@ export class OrderService implements OnApplicationBootstrap {
         fulfillmentId: ID,
         state: FulfillmentState,
     ): Promise<Fulfillment | FulfillmentStateTransitionError> {
+        await this.lockOrders(ctx, await this.getOrderIdsOfFulfillment(ctx, fulfillmentId));
         const result = await this.fulfillmentService.transitionToState(ctx, fulfillmentId, state);
         if (isGraphQlErrorResult(result)) {
             return result;
@@ -1528,6 +1538,7 @@ export class OrderService implements OnApplicationBootstrap {
         paymentId: ID,
         state: PaymentState,
     ): Promise<ErrorResultUnion<TransitionPaymentToStateResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         return this.paymentService.transitionToState(ctx, paymentId, state);
     }
 
@@ -1620,7 +1631,8 @@ export class OrderService implements OnApplicationBootstrap {
      * The exact resolution under contention depends on the database's
      * transaction-isolation default:
      *
-     *   - Postgres (READ COMMITTED): each non-locking SELECT sees the
+     *   - READ COMMITTED (Postgres, and MySQL/MariaDB, which Vendure runs at
+     *     READ COMMITTED by default): each non-locking SELECT sees the
      *     latest committed data. The first lock holder observes N-1 other
      *     orders associated with the promotion (because `countPromotionUsages`
      *     joins through `order.promotions` and counts `ArrangingPayment`
@@ -1629,20 +1641,14 @@ export class OrderService implements OnApplicationBootstrap {
      *     final lock holder sees zero and succeeds. Net: exactly one winner,
      *     specifically whichever order acquires the lock last ("last-wins").
      *
-     *   - MySQL/MariaDB (REPEATABLE READ): the consistent-read snapshot is
-     *     established by the very first non-locking SELECT in the resolver's
-     *     transaction (the order lookup at the top of `addPaymentToOrder`),
-     *     before this lock is acquired. Every subsequent non-locking SELECT
-     *     in the same transaction reads from that fixed snapshot, so each
+     *   - REPEATABLE READ, if configured on MySQL/MariaDB through
+     *     `entityOptions.transactionIsolationLevel`: the consistent-read
+     *     snapshot is established by the very first non-locking SELECT in the
+     *     resolver's transaction, before this lock is acquired, so each
      *     concurrent transaction's count query still sees the *other* orders
-     *     as holding the coupon. Result: every contender sees `count >= 1`
-     *     and strips, yielding zero winners. This is over-protective rather
-     *     than buggy — the over-application invariant still holds — but it
-     *     is a worse outcome than Postgres's last-wins. Closing this gap
-     *     properly requires either bypassing the snapshot for the count
-     *     query (`SELECT ... FOR UPDATE`) or restructuring so the lock
-     *     query is the very first read in the transaction; both come with
-     *     trade-offs (gap locks, broader scope) and are deferred.
+     *     as holding the coupon. Every contender strips, yielding zero
+     *     winners. Over-protective rather than buggy: the over-application
+     *     invariant still holds.
      *
      * Do not "fix" the resolution into first-wins without re-deriving the
      * count semantics from scratch.
@@ -1672,19 +1678,7 @@ export class OrderService implements OnApplicationBootstrap {
                 // until the resolver's @Transaction() commits. On SQLite the
                 // lock is not supported; SQLite serializes writes at the
                 // engine level instead.
-                try {
-                    await this.connection
-                        .getRepository(ctx, Promotion)
-                        .createQueryBuilder('promotion')
-                        .setLock('pessimistic_write')
-                        .where('promotion.id = :id', { id: promotion.id })
-                        .getOne();
-                } catch (e) {
-                    if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                        throw e;
-                    }
-                    // Lock not supported (e.g. SQLite) — continue without it
-                }
+                await this.connection.lockRow(ctx, Promotion, promotion.id);
             }
             const validationResult = await this.promotionService.validateCouponCode(
                 ctx,
@@ -1813,6 +1807,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<SettlePaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.settlePayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Settled') {
@@ -1831,6 +1826,7 @@ export class OrderService implements OnApplicationBootstrap {
         ctx: RequestContext,
         paymentId: ID,
     ): Promise<ErrorResultUnion<CancelPaymentResult, Payment>> {
+        await this.lockOrderOfPayment(ctx, paymentId);
         const payment = await this.paymentService.cancelPayment(ctx, paymentId);
         if (!isGraphQlErrorResult(payment)) {
             if (payment.state !== 'Cancelled') {
@@ -1851,6 +1847,12 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.lines || input.lines.length === 0 || summate(input.lines, 'quantity') === 0) {
             return new EmptyOrderLineSelectionError();
         }
+        // Lock the Orders before checking what is left to fulfil, then read them again: a
+        // concurrent fulfillment of the same lines may have committed while this one waited.
+        await this.lockOrders(
+            ctx,
+            (await getOrdersFromLines(ctx, this.connection, input.lines)).map(order => order.id),
+        );
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines);
 
         if (await this.requestedFulfillmentQuantityExceedsLineQuantity(ctx, input)) {
@@ -2015,6 +2017,7 @@ export class OrderService implements OnApplicationBootstrap {
     ): Promise<ErrorResultUnion<CancelOrderResult, Order>> {
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
+                await this.connection.lockRow(txCtx, Order, input.orderId, READ_COMMITTED_LOCK);
                 // Cancelling lines publishes events (OrderLineEvent, StockMovementEvent, HistoryEntryEvent)
                 // which subscribers receive once the outermost transaction commits, even when a savepoint
                 // inside it was rolled back. So a refusal must be known before the lines are cancelled.
@@ -2189,6 +2192,9 @@ export class OrderService implements OnApplicationBootstrap {
         if (!input.amount && !input.targets?.length) {
             return new NothingToRefundError();
         }
+        // The refundable amount is computed from the Refunds already recorded, so a concurrent
+        // refund of the same Payment has to have committed before it is read.
+        await this.lockOrderOfPayment(ctx, input.paymentId);
         const orders = await getOrdersFromLines(ctx, this.connection, input.lines ?? []);
         if (1 < orders.length) {
             return new MultipleOrderError();
@@ -2454,27 +2460,18 @@ export class OrderService implements OnApplicationBootstrap {
         }
         try {
             return await this.connection.withTransaction(ctx, async txCtx => {
-                // Acquire a pessimistic lock on the existing order to prevent concurrent merges
-                // from interleaving their DB operations. See https://github.com/vendurehq/vendure/issues/4481
-                // Note: SQLite does not support pessimistic locks — the try-catch ensures we
-                // degrade gracefully (SQLite serializes writes at the engine level anyway).
+                // Lock the existing order to prevent concurrent merges from interleaving their DB
+                // operations. See https://github.com/vendurehq/vendure/issues/4481. lockRow() is a
+                // no-op on SQLite, which runs every write on a single connection anyway.
                 if (existingOrder) {
-                    try {
-                        await this.connection
-                            .getRepository(txCtx, Order)
-                            .createQueryBuilder('order')
-                            .setLock('pessimistic_write')
-                            .where('order.id = :id', { id: existingOrder.id })
-                            .getOne();
-                    } catch {
-                        // Lock not supported (e.g. SQLite) — continue without it
-                    }
+                    await this.connection.lockRow(txCtx, Order, existingOrder.id);
                 }
 
                 // Re-read the guest order after acquiring the lock. A concurrent merge may have
-                // already deleted it, in which case there is nothing left to merge.
+                // already deleted it, in which case there is nothing left to merge. A concurrent
+                // payment may have placed it, in which case it is no longer a cart to merge.
                 const freshGuestOrder = guestOrder ? await this.findOne(txCtx, guestOrder.id) : undefined;
-                if (!freshGuestOrder && guestOrder) {
+                if (guestOrder && (!freshGuestOrder || !freshGuestOrder.active)) {
                     return existingOrder;
                 }
                 const relationFields = this.configService.customFields.OrderLine.filter(
@@ -2587,7 +2584,12 @@ export class OrderService implements OnApplicationBootstrap {
                 return order;
             });
         } catch (e: unknown) {
-            // If the merge fails for any reason, log the error and return the existing order
+            // A deadlock has ended the transaction on MySQL and MariaDB, so login cannot carry on
+            // without it. Let it through so that the login is retried as a whole.
+            if (isRetriableTransactionError(e)) {
+                throw e;
+            }
+            // If the merge fails for any other reason, log the error and return the existing order
             // unchanged rather than failing the entire login flow.
             const error = e instanceof Error ? e : new Error(String(e));
             Logger.error(`Failed to merge orders: ${error.message}`, undefined, error.stack);
@@ -2630,11 +2632,59 @@ export class OrderService implements OnApplicationBootstrap {
         return getOrderChannelContext(ctx, this.connection, this.channelService, orderId);
     }
 
+    /**
+     * Locks the given Orders for the rest of the transaction, in ascending id order. Two requests
+     * which lock the same set of Orders then take the locks in the same order and cannot deadlock.
+     * See {@link TransactionalConnection.lockRow}.
+     */
+    private async lockOrders(ctx: RequestContext, orderIds: ID[]): Promise<void> {
+        const unique = [...new Map(orderIds.map(id => [String(id), id])).values()];
+        unique.sort(compareIdsForLockOrder);
+        for (const id of unique) {
+            await this.connection.lockRow(ctx, Order, id, READ_COMMITTED_LOCK);
+        }
+    }
+
+    /** Locks the Order which the given Payment belongs to. */
+    private async lockOrderOfPayment(ctx: RequestContext, paymentId: ID): Promise<void> {
+        const row = await this.connection
+            .getRepository(ctx, Payment)
+            .createQueryBuilder('payment')
+            .innerJoin('payment.order', 'order')
+            .select('order.id', 'orderId')
+            .where('payment.id = :paymentId', { paymentId })
+            .getRawOne<{ orderId: ID }>();
+        if (row) {
+            await this.connection.lockRow(ctx, Order, row.orderId, READ_COMMITTED_LOCK);
+        }
+    }
+
+    /** Returns the ids of the Orders which the given Fulfillment fulfils. */
+    private async getOrderIdsOfFulfillment(ctx: RequestContext, fulfillmentId: ID): Promise<ID[]> {
+        const orders = await this.connection
+            .getRepository(ctx, Order)
+            .createQueryBuilder('order')
+            .innerJoin('order.fulfillments', 'fulfillment', 'fulfillment.id = :fulfillmentId', {
+                fulfillmentId,
+            })
+            .select('order.id')
+            .getMany();
+        return orders.map(order => order.id);
+    }
+
     private async getOrderOrThrow(
         ctx: RequestContext,
         orderId: ID,
         relations?: RelationPaths<Order>,
     ): Promise<Order> {
+        // Most methods which modify an Order read it through here first, so the write lock which
+        // serializes concurrent modifications of the same order is taken here. The writers which do
+        // not read through here (fulfillments, refunds, payments, cancellation, shipping method
+        // removal, merging, recalculation) take it themselves, and a new writer must do the same.
+        // It is taken before the read, so that what is read is what the lock protects.
+        // No-op outside a transaction and on databases without row locking, which is what keeps
+        // read-only requests from locking anything. See TransactionalConnection.lockRow.
+        await this.connection.lockRow(ctx, Order, orderId, READ_COMMITTED_LOCK);
         const order = await this.findOne(
             ctx,
             orderId,
@@ -2880,25 +2930,11 @@ export class OrderService implements OnApplicationBootstrap {
             return order;
         }
         return this.connection.withTransaction(ctx, async txCtx => {
-            // Acquire a pessimistic write lock on the Order row to serialize concurrent reads.
-            // On SQLite the lock is not supported; SQLite serializes writes at the engine level.
-            let lockedOrder: Order | null = null;
-            try {
-                lockedOrder = await this.connection
-                    .getRepository(txCtx, Order)
-                    .createQueryBuilder('order')
-                    .setLock('pessimistic_write')
-                    .where('order.id = :id', { id: order.id })
-                    .getOne();
-            } catch (e) {
-                if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
-                    throw e;
-                }
-                // Lock not supported (e.g. SQLite) — continue without it
-                lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
-                    where: { id: order.id },
-                });
-            }
+            // Lock the Order row to serialize concurrent reads, then read it.
+            await this.connection.lockRow(txCtx, Order, order.id);
+            const lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
+                where: { id: order.id },
+            });
             if (!lockedOrder) {
                 return order;
             }
@@ -2988,9 +3024,16 @@ export class OrderService implements OnApplicationBootstrap {
             if (affectedOrders.length === 0) {
                 continue;
             }
+            // A shopper may be changing one of these carts at the same time.
+            await this.lockOrders(
+                orderCtx,
+                affectedOrders.map(o => o.id),
+            );
 
             const orders = await this.connection.getRepository(orderCtx, Order).find({
-                where: { id: In(affectedOrders.map(o => o.id)) },
+                // Read again after the lock, and only the Orders which are still carts: one may
+                // have been paid while this waited for it.
+                where: { id: In(affectedOrders.map(o => o.id)), active: true },
                 relations: {
                     lines: { productVariant: true },
                     shippingLines: true,
