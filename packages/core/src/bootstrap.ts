@@ -11,7 +11,7 @@ import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
 import { satisfies } from 'semver';
-import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
 import { tokenMethodIncludes } from './api/common/token-method-includes';
@@ -285,8 +285,11 @@ export async function bootstrapWorker(
     userConfig: Partial<VendureConfig>,
     options?: BootstrapWorkerOptions,
 ): Promise<VendureWorker> {
-    const vendureConfig = await preBootstrapConfig(userConfig);
-    const config = disableSynchronize(vendureConfig);
+    await preBootstrapConfig(userConfig);
+    // Only the server may synchronize the schema, or the worker races it (#152). Set it on the
+    // global config, because that is what the worker's TypeORM connection reads.
+    await setConfig({ dbConnectionOptions: { synchronize: false } });
+    const config = getConfig();
     config.logger.setDefaultContext?.('Vendure Worker');
     Logger.useLogger(config.logger);
     Logger.info(`Bootstrapping Vendure Worker (pid: ${process.pid})...`);
@@ -517,21 +520,6 @@ function logWelcomeMessage(config: RuntimeVendureConfig) {
 function arrangeCliGreetingsInColumns(lines: Array<readonly [string, string]>): string[] {
     const columnWidth = Math.max(...lines.map(l => l[0].length)) + 2;
     return lines.map(l => `${(l[0] + ':').padEnd(columnWidth)}${l[1]}`);
-}
-
-/**
- * Fix race condition when modifying DB
- * See: https://github.com/vendurehq/vendure/issues/152
- */
-function disableSynchronize(userConfig: Readonly<RuntimeVendureConfig>): Readonly<RuntimeVendureConfig> {
-    const config = {
-        ...userConfig,
-        dbConnectionOptions: {
-            ...userConfig.dbConnectionOptions,
-            synchronize: false,
-        } as DataSourceOptions,
-    };
-    return config;
 }
 
 /**

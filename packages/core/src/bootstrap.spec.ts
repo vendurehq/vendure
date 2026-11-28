@@ -1,8 +1,10 @@
+import { NestFactory } from '@nestjs/core';
 import { Type } from '@vendure/common/lib/shared-types';
 import { getMetadataArgsStorage } from 'typeorm';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { runPluginConfigurations } from './bootstrap';
+import { bootstrapWorker, runPluginConfigurations } from './bootstrap';
+import { getConfig, resetConfig } from './config/config-helpers';
 import { CustomFieldConfig } from './config/custom-field/custom-field-types';
 import { RuntimeVendureConfig } from './config/vendure-config';
 // Importing the core entities registers their `customFields` embedded columns in the
@@ -11,6 +13,7 @@ import { RuntimeVendureConfig } from './config/vendure-config';
 import './entity/entities';
 import { registerCustomEntityFields } from './entity/register-custom-entity-fields';
 import { VendurePlugin } from './plugin/vendure-plugin';
+import { setProcessContext } from './process-context/process-context';
 
 /**
  * Registers custom-field-related TypeORM metadata directly in the process-global metadata storage,
@@ -336,5 +339,29 @@ describe('registerCustomEntityFields()', () => {
         } finally {
             cleanup();
         }
+    });
+});
+
+describe('bootstrapWorker()', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        resetConfig();
+        setProcessContext('server');
+    });
+
+    // #152 — the worker must never synchronize the schema, or it races the server doing the same
+    it('turns off synchronize in the config the worker DB connection reads', async () => {
+        let synchronizeSeenByWorker: boolean | undefined;
+        // The worker's TypeORM connection is built from the global config when the Nest context
+        // is created, so capture the global config at that moment and stop before connecting.
+        vi.spyOn(NestFactory, 'createApplicationContext').mockImplementation(() => {
+            synchronizeSeenByWorker = getConfig().dbConnectionOptions.synchronize;
+            throw new Error('stop before connecting');
+        });
+
+        await expect(
+            bootstrapWorker({ dbConnectionOptions: { type: 'sqljs', synchronize: true } }),
+        ).rejects.toThrow('stop before connecting');
+        expect(synchronizeSeenByWorker).toBe(false);
     });
 });
