@@ -387,25 +387,8 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
             const refundLines = getOrderLineInputFromSelections(lineSelections);
             const cancelLines = getOrderLineInputFromSelections(lineSelections, line => line.cancel);
 
-            if (isCancelling && cancelLines.length > 0) {
-                const cancelResult = await cancelOrderMutation.mutateAsync({
-                    input: {
-                        orderId: order.id,
-                        lines: cancelLines,
-                        reason,
-                        cancelShipping: refundShippingLineIds.length > 0,
-                    },
-                });
-
-                if (cancelResult.cancelOrder.__typename !== 'Order') {
-                    toast.error(t`Failed to cancel order items`, {
-                        description: cancelResult.cancelOrder.message,
-                    });
-                    setIsSubmitting(false);
-                    return;
-                }
-            }
-
+            // Every check runs before any mutation, and the refund runs before the cancellation, so a
+            // refund that is refused or fails leaves the Order unchanged.
             const selectedTargets = refundTargets.filter(rt => rt.selected && rt.amountToRefund > 0);
             if (selectedTargets.length === 0) {
                 toast.error(t`Failed to process refund`, {
@@ -460,7 +443,67 @@ export function useRefundOrder(order: Order, onSuccess?: () => void): UseRefundO
                 return;
             }
 
-            toast.success(t`Refund processed successfully`);
+            // A Refund declined by the payment provider is returned in the 'Failed' state rather than
+            // as an error result. Nothing was refunded, so nothing is cancelled.
+            if (refundResult.refundOrder.state === 'Failed') {
+                if (selectedTargets.length > 1) {
+                    // Only the first target's Refund is returned: the others may have been refunded.
+                    toast.warning(t`Refund failed for the first payment`, {
+                        description: t`Other payments may have been refunded. The order items were not cancelled. Check the order's payments before trying again.`,
+                        duration: Infinity,
+                    });
+                    onSuccess?.();
+                    return;
+                }
+                const declined = (refundResult.refundOrder.metadata as { message?: unknown } | null | undefined)?.message;
+                toast.error(t`Failed to process refund`, {
+                    description:
+                        typeof declined === 'string' && declined
+                            ? declined
+                            : t`The payment provider did not complete the refund. The order items were not cancelled.`,
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
+            if (isCancelling && cancelLines.length > 0) {
+                let cancelError: string | undefined;
+                try {
+                    const cancelResult = await cancelOrderMutation.mutateAsync({
+                        input: {
+                            orderId: order.id,
+                            lines: cancelLines,
+                            reason,
+                            cancelShipping: refundShippingLineIds.length > 0,
+                        },
+                    });
+
+                    if (cancelResult.cancelOrder.__typename !== 'Order') {
+                        cancelError = cancelResult.cancelOrder.message;
+                    }
+                } catch (error) {
+                    cancelError = error instanceof Error ? error.message : String(error);
+                }
+                if (cancelError !== undefined) {
+                    // The refund has already been made, so the Order is reloaded instead of keeping the dialog
+                    // open (resubmitting would refund again). The items stay as they were.
+                    toast.warning(t`Refund processed, but the order items were not cancelled`, {
+                        description: t`${cancelError}. The refund was kept; cancel the items separately.`,
+                        duration: Infinity,
+                    });
+                    onSuccess?.();
+                    return;
+                }
+            }
+
+            if (refundResult.refundOrder.state === 'Pending') {
+                // Accepted but not yet confirmed by the payment provider (or a method without a handler).
+                toast.warning(t`Refund pending`, {
+                    description: t`The refund has not been confirmed yet. Check that it settles.`,
+                });
+            } else {
+                toast.success(t`Refund processed successfully`);
+            }
             onSuccess?.();
         } catch (error) {
             toast.error(t`Failed to process refund`, {
