@@ -105,9 +105,12 @@ export class SharpAssetPreviewStrategy implements AssetPreviewStrategy {
     private readonly config: Required<SharpAssetPreviewConfig>;
 
     constructor(config?: SharpAssetPreviewConfig) {
+        const definedConfig = Object.fromEntries(
+            Object.entries(config ?? {}).filter(([, value]) => value !== undefined),
+        );
         this.config = {
             ...this.defaultConfig,
-            ...(config ?? {}),
+            ...definedConfig,
         };
     }
 
