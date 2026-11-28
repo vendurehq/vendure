@@ -167,6 +167,7 @@ export class FacetService {
     }
 
     async create(ctx: RequestContext, input: CreateFacetInput): Promise<Translated<Facet>> {
+        await this.assertFacetCodeAvailableInChannel(ctx, input.code);
         const facet = await this.translatableSaver.create({
             ctx,
             input,
@@ -190,6 +191,9 @@ export class FacetService {
     async update(ctx: RequestContext, input: UpdateFacetInput): Promise<Translated<Facet>> {
         // Ensure the entity belongs to the active channel before updating.
         await this.connection.getEntityOrThrow(ctx, Facet, input.id, { channelId: ctx.channelId });
+        if (input.code) {
+            await this.assertFacetCodeAvailableInChannel(ctx, input.code, input.id);
+        }
         const facet = await this.translatableSaver.update({
             ctx,
             input,
@@ -253,6 +257,30 @@ export class FacetService {
      * Checks to ensure the Facet code is unique. If there is a conflict, then the code is suffixed
      * with an incrementing integer.
      */
+    private async findFacetByCodeInChannel(ctx: RequestContext, facetCode: string) {
+        return this.connection
+            .getRepository(ctx, Facet)
+            .createQueryBuilder('facet')
+            .innerJoin('facet.channels', 'channel')
+            .where('facet.code = :code', { code: facetCode })
+            .andWhere('channel.id = :channelId', { channelId: ctx.channelId })
+            .getOne();
+    }
+
+    private async assertFacetCodeAvailableInChannel(ctx: RequestContext, facetCode: string, id?: ID) {
+        const globalMatch = await this.connection.getRepository(ctx, Facet).findOne({ where: { code: facetCode } });
+        if (!globalMatch) {
+            return;
+        }
+        if (id != null && idsAreEqual(globalMatch.id, id)) {
+            return;
+        }
+        const inCurrentChannel = await this.findFacetByCodeInChannel(ctx, facetCode);
+        if (!inCurrentChannel) {
+            throw new UserInputError('error.facet-code-in-use-other-channel', { code: facetCode });
+        }
+    }
+
     private async ensureUniqueCode(ctx: RequestContext, code: string, id?: ID) {
         let candidate = code;
         let suffix = 1;

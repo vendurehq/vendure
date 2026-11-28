@@ -827,6 +827,98 @@ describe('Facet resolver', () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         });
 
+        it('createFacet rejects a code that is already used in another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(createFacetDocument, {
+                    input: {
+                        isPrivate: false,
+                        code: 'cross-channel-facet',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Duplicate Facet Code' }],
+                    },
+                }),
+            ).rejects.toThrow(/already exists in another Channel/);
+        });
+
+        it('updateFacet rejects a code that is already used in another channel without modifying translations', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            const { createFacet: channelBFacet } = await adminClient.query(createFacetDocument, {
+                input: {
+                    isPrivate: false,
+                    code: 'channel-b-facet',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Channel B Facet' }],
+                },
+            });
+
+            await expect(
+                adminClient.query(updateFacetDocument, {
+                    input: {
+                        id: channelBFacet.id,
+                        code: 'cross-channel-facet',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Should Not Persist' }],
+                    },
+                }),
+            ).rejects.toThrow(/already exists in another Channel/);
+
+            const { facet } = await adminClient.query(getFacetWithValuesDocument, { id: channelBFacet.id });
+            expect(facet?.code).toBe('channel-b-facet');
+            expect(facet?.name).toBe('Channel B Facet');
+
+            // Also verify direct FacetService.update without an enclosing transaction leaves translations intact.
+            const facetService = server.app.get(FacetService);
+            const requestContextService = server.app.get(RequestContextService);
+            const channelBCtx = await requestContextService.create({
+                apiType: 'admin',
+                channelOrToken: CHANNEL_B_TOKEN,
+            });
+            const directFacet = await facetService.create(channelBCtx, {
+                isPrivate: false,
+                code: 'direct-service-facet',
+                translations: [{ languageCode: LanguageCode.en, name: 'Direct Service Facet' }],
+            });
+            await expect(
+                facetService.update(channelBCtx, {
+                    id: directFacet.id,
+                    code: 'cross-channel-facet',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Mutated Without Tx' }],
+                }),
+            ).rejects.toThrow(/facet-code-in-use-other-channel/);
+
+            const reloaded = await facetService.findOne(channelBCtx, directFacet.id);
+            expect(reloaded?.code).toBe('direct-service-facet');
+            expect(reloaded?.name).toBe('Direct Service Facet');
+        });
+
+        it('createFacet skips suffixes occupied in another channel when resolving a same-channel conflict', async () => {
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            await adminClient.query(createFacetDocument, {
+                input: {
+                    isPrivate: false,
+                    code: 'suffix-conflict-2',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Suffix Conflict 2' }],
+                },
+            });
+
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            const { createFacet: first } = await adminClient.query(createFacetDocument, {
+                input: {
+                    isPrivate: false,
+                    code: 'suffix-conflict',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Suffix Conflict' }],
+                },
+            });
+            expect(first.code).toBe('suffix-conflict');
+
+            const { createFacet: second } = await adminClient.query(createFacetDocument, {
+                input: {
+                    isPrivate: false,
+                    code: 'suffix-conflict',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Suffix Conflict Again' }],
+                },
+            });
+            expect(second.code).toBe('suffix-conflict-3');
+        });
+
         it('cannot update a FacetValue belonging to another channel', async () => {
             // channel-b does not contain this value, so the update must be rejected.
             adminClient.setChannelToken(CHANNEL_B_TOKEN);
