@@ -1,5 +1,5 @@
 import { LanguageCode, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
-import { mergeConfig } from '@vendure/core';
+import { ConfigService, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'node:path';
@@ -166,6 +166,43 @@ describe('ListQueryBuilder', () => {
                 });
             }, 'Cannot take more than 10 results from a list query'),
         );
+    });
+
+    describe('take of zero or less when rows exceed the query limit', () => {
+        const limit = 4;
+        let originalAdminLimit: number;
+        let originalShopLimit: number;
+
+        beforeAll(() => {
+            const { apiOptions } = server.app.get(ConfigService);
+            originalAdminLimit = apiOptions.adminListQueryLimit;
+            originalShopLimit = apiOptions.shopListQueryLimit;
+            apiOptions.adminListQueryLimit = limit;
+            apiOptions.shopListQueryLimit = limit;
+        });
+
+        afterAll(() => {
+            const { apiOptions } = server.app.get(ConfigService);
+            apiOptions.adminListQueryLimit = originalAdminLimit;
+            apiOptions.shopListQueryLimit = originalShopLimit;
+        });
+
+        // The shop API is unauthenticated, so `take: 0` must not be a way to dump a whole table.
+        for (const take of [0, -1]) {
+            it(`shop API: take ${take} falls back to shopListQueryLimit`, async () => {
+                const { testEntities } = await shopClient.query(GET_LIST, { options: { take } });
+
+                expect(testEntities.totalItems).toBe(6);
+                expect(testEntities.items.length).toBe(limit);
+            });
+
+            it(`admin API: take ${take} falls back to adminListQueryLimit`, async () => {
+                const { testEntities } = await adminClient.query(GET_LIST, { options: { take } });
+
+                expect(testEntities.totalItems).toBe(6);
+                expect(testEntities.items.length).toBe(limit);
+            });
+        }
     });
 
     describe('string filtering', () => {
