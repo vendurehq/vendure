@@ -846,6 +846,86 @@ describe('form-schema-tools', () => {
             expect(defaults.customFields.featureType).toBeNull();
         });
 
+        // #5442 — defaults must be visible, including falsy values, in the correct entity context.
+        it('uses configured defaults and keeps localized defaults in translations', () => {
+            const fields = [
+                createMockField('customFields', 'JSON', true),
+                createMockField('translations', 'Object', false, true, [
+                    createMockField('languageCode', 'LanguageCode'),
+                    createMockField('customFields', 'JSON', true),
+                ]),
+                createMockField('prices', 'Object', false, true, [
+                    createMockField('customFields', 'JSON', true),
+                ]),
+            ];
+            const configs = [
+                { name: 'cost', type: 'int', defaultValue: 1250 },
+                { name: 'zero', type: 'int', defaultValue: 0 },
+                { name: 'enabled', type: 'boolean', defaultValue: false },
+                { name: 'tagline', type: 'localeString', defaultValue: 'Hello' },
+                {
+                    name: 'priority',
+                    type: 'string',
+                    readonly: false,
+                    list: false,
+                    nullable: true,
+                    options: [{ value: 'low' }],
+                },
+            ] as any;
+            const defaults = getDefaultValuesFromFields(fields, 'en', configs);
+            expect(defaults.customFields).toEqual({ cost: 1250, zero: 0, enabled: false, priority: null });
+            expect(defaults.translations).toEqual([
+                { languageCode: 'en', customFields: { tagline: 'Hello' } },
+            ]);
+            expect(defaults.prices).toEqual([{ customFields: {} }]);
+        });
+
+        // #5442 — an explicit empty select default must survive shared normalization.
+        it('preserves an explicitly configured empty-string select default', () => {
+            const configs = [
+                {
+                    name: 'featureType',
+                    type: 'string',
+                    nullable: true,
+                    readonly: false,
+                    list: false,
+                    defaultValue: '',
+                    options: [{ value: '' }, { value: 'standard' }],
+                },
+            ] as any;
+            const defaults = getDefaultValuesFromFields(
+                [createMockField('customFields', 'JSON', true)],
+                'en',
+                configs,
+            );
+            expect(defaults.customFields.featureType).toBe('');
+            expect(applyNullableSelectCustomFieldDefaults(defaults, configs).customFields.featureType).toBe(
+                '',
+            );
+            expect(
+                applyNullableSelectCustomFieldDefaults({ customFields: { featureType: undefined } }, configs)
+                    .customFields.featureType,
+            ).toBeNull();
+            expect(
+                applyNullableSelectCustomFieldDefaults({ customFields: { featureType: null } }, configs)
+                    .customFields.featureType,
+            ).toBeNull();
+        });
+
+        it('seeds only writable custom fields present in the input', () => {
+            const fields = [
+                createMockField('customFields', 'Object', true, false, [
+                    createMockField('cost', 'Int', true),
+                ]),
+            ];
+            const configs = [
+                { name: 'cost', type: 'int', defaultValue: 1250 },
+                { name: 'readonlyValue', type: 'string', readonly: true, defaultValue: 'readonly' },
+                { name: 'otherValue', type: 'int', defaultValue: 5 },
+            ] as any;
+            expect(getDefaultValuesFromFields(fields, 'en', configs).customFields).toEqual({ cost: 1250 });
+        });
+
         // #5241: the null seeded for a nullable: false custom field passes the create schema only.
         // It is stripped on submit, so the SQL DEFAULT applies. The update schema rejects it (NOT NULL).
         it.each([

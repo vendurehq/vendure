@@ -53,9 +53,10 @@ const createDocument = {} as any;
 
 const customFieldConfig = [{ name: 'defaultMinStock', type: 'int', nullable: false }] as any;
 
-async function renderForm(initialEntity?: Record<string, any>) {
+async function renderForm(initialEntity?: Record<string, any>, fieldConfig = customFieldConfig) {
     let form: ReturnType<typeof useGeneratedForm>['form'] | undefined;
     let isValid: boolean | undefined;
+    let isDirty: boolean | undefined;
     let setEntity: (entity: Record<string, any>) => void = () => undefined;
     function Probe() {
         const [entity, set] = useState(initialEntity);
@@ -64,10 +65,11 @@ async function renderForm(initialEntity?: Record<string, any>) {
             document: createDocument,
             varName: 'input',
             entity,
-            customFieldConfig,
+            customFieldConfig: fieldConfig,
             setValues: e => ({ name: e.name, customFields: e.customFields }),
         }).form;
         isValid = form.formState.isValid;
+        isDirty = form.formState.isDirty;
         return null;
     }
     const root = createRoot(document.createElement('div'));
@@ -77,6 +79,7 @@ async function renderForm(initialEntity?: Record<string, any>) {
     return {
         getForm: () => form as NonNullable<typeof form>,
         getIsValid: () => isValid,
+        getIsDirty: () => isDirty,
         setEntity: (entity: Record<string, any>) => act(async () => setEntity(entity)),
         unmount: () => act(() => root.unmount()),
     };
@@ -86,6 +89,27 @@ const existingStockLocation = { id: '1', name: 'Warehouse', customFields: { defa
 
 // #5241: a nullable: false int custom field must not leave a create form invalid at mount
 describe('useGeneratedForm with a nullable: false custom field', () => {
+    // #5442 — show the default before save, without marking an untouched form dirty.
+    it('prefills the configured default on create', async () => {
+        const config = [
+            { ...customFieldConfig[0], defaultValue: 1250, ui: { component: 'currency-form-input' } },
+        ];
+        const { getForm, getIsDirty, unmount } = await renderForm(undefined, config);
+        expect(getForm().getValues('customFields.defaultMinStock' as any)).toBe(1250);
+        expect(getIsDirty()).toBe(false);
+        unmount();
+    });
+
+    it('keeps a saved value instead of the configured default', async () => {
+        const config = [{ ...customFieldConfig[0], defaultValue: 12 }];
+        const { getForm, unmount } = await renderForm(
+            { ...existingStockLocation, customFields: { defaultMinStock: 0 } },
+            config,
+        );
+        expect(getForm().getValues('customFields.defaultMinStock' as any)).toBe(0);
+        unmount();
+    });
+
     it('create form is valid once the required built-in fields are filled', async () => {
         const { getForm, getIsValid, unmount } = await renderForm(undefined);
         await act(async () => {
