@@ -867,21 +867,24 @@ describe('Facet resolver', () => {
             // Also verify direct FacetService.update without an enclosing transaction leaves translations intact.
             const facetService = server.app.get(FacetService);
             const requestContextService = server.app.get(RequestContextService);
-            const defaultCtx = await requestContextService.create({ apiType: 'admin' });
-            const directFacet = await facetService.create(defaultCtx, {
+            const channelBCtx = await requestContextService.create({
+                apiType: 'admin',
+                channelOrToken: CHANNEL_B_TOKEN,
+            });
+            const directFacet = await facetService.create(channelBCtx, {
                 isPrivate: false,
                 code: 'direct-service-facet',
                 translations: [{ languageCode: LanguageCode.en, name: 'Direct Service Facet' }],
             });
             await expect(
-                facetService.update(defaultCtx, {
+                facetService.update(channelBCtx, {
                     id: directFacet.id,
                     code: 'cross-channel-facet',
                     translations: [{ languageCode: LanguageCode.en, name: 'Mutated Without Tx' }],
                 }),
             ).rejects.toThrow(/facet-code-in-use-other-channel/);
 
-            const reloaded = await facetService.findOne(defaultCtx, directFacet.id);
+            const reloaded = await facetService.findOne(channelBCtx, directFacet.id);
             expect(reloaded?.code).toBe('direct-service-facet');
             expect(reloaded?.name).toBe('Direct Service Facet');
         });
