@@ -130,6 +130,26 @@ class ThrowingDestination implements RefundDestinationStrategy {
     }
 }
 
+const decliningSpy = vi.fn();
+
+/**
+ * Simulates a provider decline: createRefund() returns normally with a `Failed` state rather than
+ * throwing.
+ */
+class DecliningDestination implements RefundDestinationStrategy {
+    readonly code = 'declining';
+    readonly description = [{ languageCode: LanguageCode.en, value: 'Always declined' }];
+
+    isAvailable() {
+        return true;
+    }
+
+    createRefund() {
+        decliningSpy();
+        return { state: 'Failed' as const, metadata: { message: 'Declined by provider' } };
+    }
+}
+
 const refundDestinationsDocument = graphql(`
     query GetRefundDestinations($orderId: ID!) {
         refundDestinations(orderId: $orderId) {
@@ -232,6 +252,7 @@ describe('Refund destinations', () => {
                     new StoreCreditDestination(),
                     new RestrictedDestination(),
                     new ThrowingDestination(),
+                    new DecliningDestination(),
                     new MultiPaymentOnlyDestination(),
                 ],
             },
@@ -580,6 +601,78 @@ describe('Refund destinations', () => {
             )();
 
             expect(await countRefunds()).toBe(refundCountBefore);
+        });
+    });
+
+    describe('a target which ends in the Failed state', () => {
+        async function countRefunds() {
+            const { order } = await adminClient.query(getOrderPaymentsDocument, { id: orderId });
+            return order!.payments!.reduce((sum, p) => sum + (p.refunds?.length ?? 0), 0);
+        }
+
+        it('returns RefundIncompleteError when a later target ends Failed', async () => {
+            const refundCountBefore = await countRefunds();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: partialPaymentId,
+                    reason: 'second target declined',
+                    targets: [
+                        { paymentId: partialPaymentId, amount: 100 },
+                        { paymentId: refundablePaymentId, amount: 100, destination: 'declining' },
+                    ],
+                },
+            });
+
+            refundGuard.assertErrorResult(refundOrder);
+            expect(refundOrder.errorCode).toBe(ErrorCode.REFUND_INCOMPLETE_ERROR);
+            const incomplete = refundOrder as any;
+            expect(incomplete.failedTargetIndex).toBe(1);
+            expect(incomplete.failureReason).toBe('Declined by provider');
+            expect(incomplete.refunds).toHaveLength(1);
+            expect(incomplete.refunds[0].total).toBe(100);
+
+            // The settled Refund and the Failed Refund (the record of the attempt) are both saved.
+            expect(await countRefunds()).toBe(refundCountBefore + 2);
+        });
+
+        it('returns the Failed Refund and executes no later target when the first target ends Failed', async () => {
+            const refundCountBefore = await countRefunds();
+            decliningSpy.mockClear();
+            storeCreditSpy.mockClear();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: refundablePaymentId,
+                    reason: 'first target declined',
+                    targets: [
+                        { paymentId: refundablePaymentId, amount: 100, destination: 'declining' },
+                        { paymentId: partialPaymentId, amount: 100, destination: 'store-credit' },
+                    ],
+                },
+            });
+
+            refundGuard.assertSuccess(refundOrder);
+            expect(refundOrder.state).toBe('Failed');
+            expect(decliningSpy).toHaveBeenCalledTimes(1);
+            expect(storeCreditSpy).not.toHaveBeenCalled();
+            expect(await countRefunds()).toBe(refundCountBefore + 1);
+        });
+
+        it('still returns the Failed Refund for a single-target refund', async () => {
+            const refundCountBefore = await countRefunds();
+
+            const { refundOrder } = await adminClient.query(refundWithDestinationDocument, {
+                input: {
+                    paymentId: refundablePaymentId,
+                    reason: 'single target declined',
+                    targets: [{ paymentId: refundablePaymentId, amount: 100, destination: 'declining' }],
+                },
+            });
+
+            refundGuard.assertSuccess(refundOrder);
+            expect(refundOrder.state).toBe('Failed');
+            expect(await countRefunds()).toBe(refundCountBefore + 1);
         });
     });
 
