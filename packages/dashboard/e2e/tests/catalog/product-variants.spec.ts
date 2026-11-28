@@ -7,6 +7,7 @@ import {
     selectAssignChannel,
     typePriceFactor,
 } from '../../utils/price-factor-fixture.js';
+import { setDisplayLocale } from '../../utils/display-locale.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 const productDetailConfig = {
@@ -1128,4 +1129,82 @@ test.describe('product variants list assign to channel', () => {
             await fixture.cleanup();
         }
     });
+});
+
+// #5969 — in a comma decimal locale, a price typed as "1,50" must be saved as 1.50, not 150.00
+test('saves a variant price typed with a comma decimal separator', async ({ page }) => {
+    const suffix = Date.now();
+    const client = new VendureAdminClient(page);
+    await client.login();
+    let productId: string | undefined;
+    try {
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Comma Price ${suffix}`,
+                            slug: `e2e-comma-price-${suffix}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = createProduct.id;
+        const { createProductVariants } = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) { createProductVariants(input: $input) { id } }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: `E2E-COMMA-${suffix}`,
+                        price: 1000,
+                        translations: [{ languageCode: 'en', name: `E2E Comma Price ${suffix}` }],
+                    },
+                ],
+            },
+        );
+        const variantId = createProductVariants[0].id as string;
+
+        // English labels with German number formatting, whose decimal separator is a comma
+        await setDisplayLocale(page, 'DE');
+        await page.goto(`/product-variants/${variantId}`);
+        await expect(page.getByRole('heading', { name: `E2E Comma Price ${suffix}` })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        const priceInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('Price', { exact: true }) })
+            .getByRole('textbox');
+        await priceInput.clear();
+        await priceInput.pressSequentially('1,50');
+        await expect(priceInput).toHaveValue('1,50');
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        const { productVariant } = await client.gql(
+            `query ($id: ID!) { productVariant(id: $id) { price } }`,
+            { id: variantId },
+        );
+        expect(productVariant.price).toBe(150);
+
+        // The stored price is shown with the same separator it is typed with
+        await page.reload();
+        await expect(priceInput).toHaveValue('1,50');
+    } finally {
+        if (productId) {
+            await client
+                .gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId })
+                .catch(() => undefined);
+        }
+    }
 });
