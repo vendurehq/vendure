@@ -712,6 +712,8 @@ export enum CurrencyCode {
     /** Saint Helena pound */
     SHP = 'SHP',
     /** Sierra Leonean leone */
+    SLE = 'SLE',
+    /** Sierra Leonean leone (1964–2022) */
     SLL = 'SLL',
     /** Somali shilling */
     SOS = 'SOS',
@@ -767,6 +769,8 @@ export enum CurrencyCode {
     XAF = 'XAF',
     /** East Caribbean dollar */
     XCD = 'XCD',
+    /** Caribbean guilder */
+    XCG = 'XCG',
     /** CFA franc BCEAO */
     XOF = 'XOF',
     /** CFP franc (franc Pacifique) */
@@ -777,6 +781,8 @@ export enum CurrencyCode {
     ZAR = 'ZAR',
     /** Zambian kwacha */
     ZMW = 'ZMW',
+    /** Zimbabwean gold */
+    ZWG = 'ZWG',
     /** Zimbabwean dollar */
     ZWL = 'ZWL',
 }
