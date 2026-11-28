@@ -61,6 +61,19 @@ const NARROWING_ARGUMENT_ADVICE: Record<string, string> = {
 };
 // Enforce SEP-986 because some MCP clients reject non-conforming tool names.
 const TOOL_NAME_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+const UNPRINTABLE_VALUE_MESSAGE = 'A value that could not be converted to text was thrown';
+
+/**
+ * Text for a thrown value that is not an Error. String() itself throws for some values, such as
+ * an object with a null prototype, and the failure paths must not fail in turn.
+ */
+function describeThrown(value: unknown): string {
+    try {
+        return String(value);
+    } catch {
+        return UNPRINTABLE_VALUE_MESSAGE;
+    }
+}
 
 /** What admission decided: either a result to send back unchanged, or the tool and input to run. */
 type ToolCallAdmission =
@@ -509,6 +522,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 loggerCtx,
                 error instanceof Error ? error.stack : undefined,
             );
+            this.reportServerError(tool.name, error);
         }
         await this.toolCallLog.logToolCall({
             executionContext: callContext,
@@ -523,6 +537,31 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 ? callContext.ctx.translate(error.message, error.variables)
                 : GENERIC_TOOL_ERROR_MESSAGE,
             sessionToken,
+        );
+    }
+
+    // Tools call services directly, so Vendure's GraphQL exception filter, which invokes the
+    // configured ErrorHandlerStrategy instances, never sees their errors. Pass the server faults to
+    // the handlers here instead. A handler that throws or rejects must not change the tool's result.
+    private reportServerError(toolName: string, error: unknown): void {
+        const exception = error instanceof Error ? error : new Error(describeThrown(error));
+        for (const handler of this.configService.systemOptions.errorHandlers) {
+            try {
+                // There is no HTTP or GraphQL execution context for a tool call, so no host.
+                const pending = handler.handleServerError(exception, { host: undefined as any });
+                void Promise.resolve(pending).catch((e: unknown) => this.logErrorHandlerFailure(toolName, e));
+            } catch (e) {
+                this.logErrorHandlerFailure(toolName, e);
+            }
+        }
+    }
+
+    private logErrorHandlerFailure(toolName: string, e: unknown): void {
+        Logger.error(
+            `An error handler failed while handling the error of MCP tool "${toolName}": ${
+                e instanceof Error ? e.message : describeThrown(e)
+            }`,
+            loggerCtx,
         );
     }
 
