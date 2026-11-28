@@ -3,4 +3,7 @@ export const DEFAULT_TIMEOUT = 60000;
 export const DEFAULT_MANUAL_TRIGGER_CHECK_INTERVAL = 10000;
 export const DEFAULT_LOCK_HOLD_FRACTION = 0.8;
 export const DEFAULT_MAX_LOCK_HOLD_MS = 5000;
+export const LOCK_REFRESH_FRACTION = 1 / 3;
+export const MAX_LOCK_REFRESH_MS = 60_000;
+export const TIMED_OUT_WARNING_INTERVAL_MS = 60_000;
 export const loggerCtx = 'DefaultSchedulerPlugin';
