@@ -23,7 +23,8 @@ export async function transformImage(
         options.fit = 'inside';
     }
 
-    const image = sharp(originalImage).rotate();
+    // Keep XMP so provenance markings such as IPTC DigitalSourceType survive; EXIF is dropped
+    const image = sharp(originalImage).rotate().keepXmp();
 
     // Merge alpha transparency channel with the specified background color
     if (parameters.backgroundColor) {
